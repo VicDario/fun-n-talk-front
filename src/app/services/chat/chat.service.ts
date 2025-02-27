@@ -5,7 +5,7 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 import { BehaviorSubject } from 'rxjs';
-import { Message } from '../../interfaces/message.interface';
+import type { Message } from '@interfaces/message.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -38,8 +38,7 @@ export class ChatService {
   public async startConnection() {
     try {
       await this._hubConnection.start();
-      if (this._hubConnection.state === 'Connected')
-        console.log('Connection Started');
+      if (!this.isConnected) throw new Error('Connection failed');
       this.joinRoom();
     } catch (error) {
       return console.error(error);
@@ -49,8 +48,7 @@ export class ChatService {
   public async stopConnection() {
     try {
       await this._hubConnection.stop();
-      if (this._hubConnection.state === 'Disconnected')
-        console.log('Connection Stopped');
+      if (this.isConnected) throw new Error('Disconnection failed');
     } catch (error) {
       return console.error(error);
     }
@@ -86,5 +84,9 @@ export class ChatService {
 
   public get $messages() {
     return this._messages.asObservable();
+  }
+
+  public get isConnected() {
+    return this._hubConnection.state === 'Connected';
   }
 }
