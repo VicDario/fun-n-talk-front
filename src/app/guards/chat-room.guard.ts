@@ -1,8 +1,8 @@
 import { inject } from '@angular/core';
 import { CanActivateFn } from '@angular/router';
-import { ChatService } from '@services/chat/chat.service';
+import { SignalRService } from '@services/signal-r/signal-r.service';
 
 export const chatRoomGuard: CanActivateFn = () => {
-  const chatService = inject(ChatService);
-  return chatService.isConnected;
+  const service = inject(SignalRService);
+  return service.isConnected;
 };
