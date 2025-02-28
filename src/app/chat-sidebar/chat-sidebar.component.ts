@@ -1,5 +1,5 @@
 import { DatePipe, NgClass } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Message } from '@interfaces/message.interface';
 import { ChatService } from '@services/chat/chat.service';
@@ -12,12 +12,10 @@ import { ChatService } from '@services/chat/chat.service';
 })
 export class ChatSidebarComponent {
   private readonly _chatService = inject(ChatService);
-  public conversation: Message[] = [];
+  public conversation: WritableSignal<Message[]>;
 
-  ngOnInit(): void {
-    this._chatService.$messages.subscribe(
-      (messages) => (this.conversation = messages)
-    );
+  constructor() {
+    this.conversation = this._chatService.messages;
   }
 
   public sendMessage(event: SubmitEvent): void {
@@ -30,6 +28,6 @@ export class ChatSidebarComponent {
   }
 
   public get connectionId(): string {
-    return this._chatService.connectionId ?? '';
+    return this._chatService.connectionId;
   }
 }
