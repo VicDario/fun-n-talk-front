@@ -1,9 +1,9 @@
-import { NgClass, NgFor } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-video-grid',
-  imports: [NgFor, NgClass],
+  imports: [NgClass],
   templateUrl: './video-grid.component.html',
   styleUrl: './video-grid.component.css'
 })
