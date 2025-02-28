@@ -6,6 +6,7 @@ import {
 } from '@microsoft/signalr';
 import { BehaviorSubject } from 'rxjs';
 import type { Message } from '@interfaces/message.interface';
+import { environment } from '@env/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -18,7 +19,7 @@ export class ChatService {
 
   constructor() {
     this._hubConnection = new HubConnectionBuilder()
-      .withUrl('https://localhost:7055/communicationHub')
+      .withUrl(environment.hubUrl)
       .configureLogging(LogLevel.Information)
       .withKeepAliveInterval(5000)
       .withAutomaticReconnect()
@@ -29,6 +30,10 @@ export class ChatService {
 
   public set userName(value: string) {
     this._userName = value;
+  }
+
+  public get connectionId() {
+    return this._hubConnection.connectionId;
   }
 
   public set groupName(value: string) {
@@ -56,7 +61,7 @@ export class ChatService {
 
   public addEvents() {
     this._hubConnection.on('UserJoined', (username: string) => {
-      console.log(username + ' has joined the room.');
+      console.log(username);
     });
 
     this._hubConnection.on('UserLeft', (connectionId: string) => {
@@ -64,7 +69,6 @@ export class ChatService {
     });
 
     this._hubConnection.on('ReceiveMessage', (message: Message) => {
-      console.log('Received message: ' + message);
       this._messages.next([...this._messages.getValue(), message]);
     });
   }
