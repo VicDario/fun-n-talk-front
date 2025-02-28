@@ -16,9 +16,9 @@ export class JoinScreenComponent {
   public joinRoom(event: SubmitEvent): void {
     const target = event.target as HTMLFormElement;
     this._chatService.userName = target['userName'].value;
-    this._chatService.groupName = target['groupName'].value;
+    this._chatService.roomName = target['roomName'].value;
     this._chatService
-      .startConnection()
+      .initConnection()
       .then(() => this._router.navigate(['/chat-room']));
   }
 }
