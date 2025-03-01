@@ -5,6 +5,7 @@ import { ChatSidebarComponent } from '@app/chat-sidebar/chat-sidebar.component';
 import { VideoGridComponent } from '@app/video-grid/video-grid.component';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { MediaService } from '@services/media/media.service';
 
 @Component({
   selector: 'app-chat-room',
@@ -14,6 +15,7 @@ import { NgClass } from '@angular/common';
 })
 export class ChatRoomComponent {
   private readonly _chatService = inject(ChatService);
+  private readonly _mediaService = inject(MediaService);
   private readonly _router = inject(Router);
   public messageToSend = '';
   public participants: any[] = [];
@@ -26,10 +28,12 @@ export class ChatRoomComponent {
   }
 
   public toggleAudio(): void {
-    return;
+    this.isMicrophoneEnabled = !this.isMicrophoneEnabled;
+    this._mediaService.toggleAudio(this.isMicrophoneEnabled);
   }
 
   public toggleVideo(): void {
-    return;
+    this.isVideoEnabled = !this.isVideoEnabled;
+    this._mediaService.toggleVideo(this.isVideoEnabled);
   }
 }
