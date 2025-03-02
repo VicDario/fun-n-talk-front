@@ -1,6 +1,8 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
 import { Message } from '@interfaces/message.interface';
+import { User } from '@interfaces/user.interface';
+import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -12,7 +14,11 @@ import {
 })
 export class SignalRService {
   private readonly _hubConnection: HubConnection;
+  private _roomName?: string;
   private _messageEventEmitter = new EventEmitter<Message>();
+  private _offerEventEmitter = new EventEmitter<WebRtcSignal>();
+  private _answerEventEmitter = new EventEmitter<WebRtcSignal>();
+  private _iceCandidateEventEmitter = new EventEmitter<WebRtcSignal>();
 
   constructor() {
     this._hubConnection = new HubConnectionBuilder()
@@ -34,9 +40,9 @@ export class SignalRService {
     }
   }
 
-  public async stopConnection(roomName: string) {
+  public async stopConnection() {
     try {
-      this.leaveRoom(roomName);
+      this.leaveRoom();
       await this._hubConnection.stop();
       if (this.isConnected) throw new Error('Disconnection failed');
     } catch (error) {
@@ -45,63 +51,64 @@ export class SignalRService {
   }
 
   public addEvents() {
-    this._hubConnection.on('UserJoined', (username: string) => {
-      console.log(username);
+    this._hubConnection.on('UserJoined', (user: User) => {
+      console.log(user);
     });
 
-    this._hubConnection.on('UserLeft', (connectionId: string) => {
-      console.log('User with connectionId ' + connectionId + ' has left.');
+    this._hubConnection.on('UserLeft', (user: User) => {
+      console.log(user);
     });
 
-    this._hubConnection.on('ReceiveMessage', (message: Message) => {
-      this._messageEventEmitter.emit(message);
-    });
-
-    this._hubConnection.on(
-      'ReceiveIceCandidate',
-      (candidate: RTCIceCandidate) => {
-        console.log('Received ICE candidate: ' + candidate);
-      }
+    this._hubConnection.on('ReceiveMessage', (message: Message) =>
+      this._messageEventEmitter.emit(message)
     );
 
-    this._hubConnection.on(
-      'ReceiveOffer',
-      (offer: RTCSessionDescriptionInit, connectionId: string) => {
-        //this._webRtcService.createAnswerToOffer(offer, connectionId);
-        console.log('Received offer: ' + offer);
-      }
+    this._hubConnection.on('ReceiveOffer', (signal: WebRtcSignal) =>
+      this._offerEventEmitter.emit(signal)
     );
-
-    this._hubConnection.on(
-      'ReceiveAnswer',
-      (answer: RTCSessionDescriptionInit) => {
-        //this.sendAnswer(answer);
-      }
+    this._hubConnection.on('ReceiveAnswer', (signal: WebRtcSignal) =>
+      this._answerEventEmitter.emit(signal)
+    );
+    this._hubConnection.on('ReceiveICECandidate', (signal: WebRtcSignal) =>
+      this._iceCandidateEventEmitter.emit(signal)
     );
   }
 
   public async joinRoom(roomName: string, userName: string) {
+    this._roomName = roomName;
     await this._hubConnection.invoke('JoinRoom', roomName, userName);
   }
 
-  private async leaveRoom(roomName: string) {
-    await this._hubConnection.invoke('LeaveRoom', roomName);
+  private async leaveRoom() {
+    await this._hubConnection.invoke('LeaveRoom', this._roomName);
   }
 
-  public async sendMessage(roomName: string, message: string) {
-    await this._hubConnection.invoke('SendMessage', roomName, message);
+  public async sendMessage(message: string) {
+    await this._hubConnection.invoke('SendMessage', this._roomName, message);
   }
 
-  public async onIceConnection(candidate: RTCIceCandidate) {
-    await this._hubConnection.invoke('SendIceCandidate', candidate);
+  public async onIceCandidate(candidate: RTCIceCandidate) {
+    await this._hubConnection.invoke(
+      'SendICECandidate',
+      this._roomName,
+      JSON.stringify(candidate)
+    );
   }
 
   public async sendOffer(offer: RTCSessionDescriptionInit) {
-    await this._hubConnection.invoke('SendOffer', offer);
+    await this._hubConnection.invoke(
+      'SendOffer',
+      this._roomName,
+      JSON.stringify(offer)
+    );
   }
 
   public async sendAnswer(answer: RTCSessionDescriptionInit) {
-    await this._hubConnection.invoke('SendAnswer', answer);
+    await this._hubConnection.invoke(
+      'SendAnswer',
+      this._roomName,
+      JSON.stringify(answer)
+    );
   }
 
   public get connectionId() {
@@ -114,5 +121,15 @@ export class SignalRService {
 
   public get messageEventEmitter() {
     return this._messageEventEmitter;
+  }
+
+  public get offerEventEmitter() {
+    return this._offerEventEmitter;
+  }
+  public get answerEventEmitter() {
+    return this._answerEventEmitter;
+  }
+  public get iceCandidateEventEmitter() {
+    return this._iceCandidateEventEmitter;
   }
 }
