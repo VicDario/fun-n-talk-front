@@ -17,8 +17,6 @@ export class ChatRoomComponent {
   private readonly _chatService = inject(ChatService);
   private readonly _mediaService = inject(MediaService);
   private readonly _router = inject(Router);
-  public messageToSend = '';
-  public participants: any[] = [];
   public isVideoEnabled = true;
   public isMicrophoneEnabled = true;
 
