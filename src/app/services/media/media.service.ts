@@ -9,13 +9,21 @@ export class MediaService {
   public async getLocalStream(): Promise<MediaStream> {
     if (this._localStream) return this._localStream;
 
-    const localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
+    try {
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
 
-    this._localStream ??= localStream;
-    return localStream;
+      this._localStream = localStream;
+      return localStream;
+    } catch (error) {
+      console.error("Error accessing media devices:", error);
+
+      // Return an empty stream with no tracks to prevent breaking the app
+      const emptyStream = new MediaStream();
+      return emptyStream;
+    }
   }
 
   public toggleVideo(enabled: boolean): void {
