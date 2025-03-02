@@ -4,12 +4,15 @@ import { environment } from '@env/environment';
 import { SignalRService } from '@services/signal-r/signal-r.service';
 import type { Message } from '@interfaces/message.interface';
 import type { User } from '@interfaces/user.interface';
+import { WebRtcService } from '@services/web-rtc.service';
+import { EMPTY, mergeMap, Observable, switchMap, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ChatService {
   private readonly _signalRService = inject(SignalRService);
+  private readonly _webRtcService = inject(WebRtcService);
   private readonly _http = inject(HttpClient);
   private _userName?: string;
   private _roomName?: string;
@@ -27,27 +30,36 @@ export class ChatService {
   public async initConnection(): Promise<void> {
     await this._signalRService.startConnection();
     await this._signalRService.joinRoom(this._roomName!, this._userName!);
-    this.getParticipants();
     this.onMessageEvent();
+    this.getParticipants()
+      .pipe(
+        tap((participants) => this._participants.set(participants)),
+        switchMap(() => this._participants()),
+        mergeMap((participant) =>
+          participant.connectionId !== this._signalRService.connectionId
+            ? this._webRtcService.createPeerConnection(participant.connectionId, true)
+            : EMPTY
+        )
+      )
+      .subscribe();
   }
 
   public stopConnection(): void {
-    this._signalRService.stopConnection(this._roomName!);
+    this._signalRService.stopConnection();
   }
 
-  private getParticipants(): void {
-    this._http
-      .get<User[]>(`${environment.apiUrl}/api/communication/room/${this._roomName}/participants`)
-      .subscribe((participants) => this._participants.set(participants));
+  private getParticipants(): Observable<User[]> {
+    return this._http.get<User[]>(
+      `${environment.apiUrl}/api/communication/room/${this._roomName}/participants`
+    );
   }
 
   public sendMessage(message: string): void {
-    this._signalRService.sendMessage(this._roomName!, message);
+    this._signalRService.sendMessage(message);
   }
 
   private onMessageEvent(): void {
     this._signalRService.messageEventEmitter.subscribe((message) => {
-      console.log(message);
       this._messages.update((messages) => [...messages, message]);
     });
   }
