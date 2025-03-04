@@ -1,7 +1,7 @@
 import { NgClass } from '@angular/common';
-import { Component, inject, Input, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MediaService } from '@services/media/media.service';
-import { WebRtcService } from '@services/web-rtc.service';
+import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 
 @Component({
   selector: 'app-video-grid',

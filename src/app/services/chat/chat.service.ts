@@ -4,7 +4,7 @@ import { environment } from '@env/environment';
 import { SignalRService } from '@services/signal-r/signal-r.service';
 import type { Message } from '@interfaces/message.interface';
 import type { User } from '@interfaces/user.interface';
-import { WebRtcService } from '@services/web-rtc.service';
+import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 import { EMPTY, mergeMap, Observable, switchMap, tap } from 'rxjs';
 
 @Injectable({

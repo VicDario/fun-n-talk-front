@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { environment } from '@env/environment';
-import { SignalRService } from './signal-r/signal-r.service';
-import { MediaService } from './media/media.service';
+import { SignalRService } from '../signal-r/signal-r.service';
+import { MediaService } from '../media/media.service';
 import type { WebRtcStreamConnection } from '@interfaces/web-rtc-stream.interface';
 import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
 
