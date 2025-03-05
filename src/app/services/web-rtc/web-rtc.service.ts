@@ -4,6 +4,7 @@ import { SignalRService } from '../signal-r/signal-r.service';
 import { MediaService } from '../media/media.service';
 import type { WebRtcStreamConnection } from '@interfaces/web-rtc-stream.interface';
 import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
+import { WebRtcCandidate } from '@interfaces/web-rtc-candidate.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -38,7 +39,6 @@ export class WebRtcService {
     connectionId: string,
     isInitiator: boolean = false
   ): Promise<RTCPeerConnection | null> {
-    console.log('Creating peer connection: ' + connectionId);
     if (this._peerConnections.has(connectionId))
       return this._peerConnections.get(connectionId)!;
 
@@ -53,25 +53,27 @@ export class WebRtcService {
 
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
-        this._signalRService.onIceCandidate(event.candidate);
+        this._signalRService.onIceCandidate(event.candidate, connectionId);
       }
     };
 
-    peerConnection.ontrack = (event) => {
-      const stream = event.streams[0];
+    peerConnection.addEventListener('track', async (event) => {
+      const [stream] = event.streams;
+      this._remoteStreams.update((remoteStreams) => {
+        const streams = [...remoteStreams];
 
-      this._remoteStreams.update((streams) => {
         const streamIndex = streams.findIndex(
-          (s) => s.connectionId === connectionId
+          (stream) => stream.connectionId === connectionId
         );
+
         if (streamIndex >= 0) streams[streamIndex].stream = stream;
         else streams.push({ connectionId, stream, connection: peerConnection });
 
-        return [...streams];
+        return streams;
       });
-    };
+    });
 
-    if (isInitiator) this.createOffer(peerConnection);
+    if (isInitiator) await this.createOffer(peerConnection);
 
     this._peerConnections.set(connectionId, peerConnection);
 
@@ -82,51 +84,50 @@ export class WebRtcService {
     try {
       const offer = await connection.createOffer();
       await connection.setLocalDescription(offer);
-      this._signalRService.sendOffer(offer);
+      await this._signalRService.sendOffer(offer);
     } catch (err) {
       console.error('Error creating offer:', err);
     }
   }
 
   private async sendAnswerToOffer(
-    connection: RTCPeerConnection
+    connection: RTCPeerConnection,
+    connectionId: string
   ): Promise<void> {
     try {
       const answer = await connection.createAnswer();
       await connection.setLocalDescription(answer);
-      this._signalRService.sendAnswer(answer);
+      await this._signalRService.sendAnswer(answer, connectionId);
     } catch (err) {
       console.error('Error creating answer:', err);
     }
   }
 
-  private async handleOffer(signal: WebRtcSignal): Promise<void> {
-    console.log('signal', signal);
-    const { user, data } = signal;
+  private async handleOffer({
+    user,
+    data: offer,
+  }: WebRtcSignal): Promise<void> {
     try {
       const connection =
-        this._peerConnections.get(user.connectionId) ||
-        (await this.createPeerConnection(user.connectionId));
+        this._peerConnections.get(user.connectionId) ??
+        (await this.createPeerConnection(user.connectionId, false));
       if (!connection) return;
 
-      console.log('Handling offer', connection);
-      // Only process if we don't already have a connection or if we need to renegotiate
-      const currentDescription = connection.currentRemoteDescription;
-      if (currentDescription) return;
-      const offer = JSON.parse(data);
       await connection.setRemoteDescription(new RTCSessionDescription(offer));
-      this.sendAnswerToOffer(connection);
+      await this.sendAnswerToOffer(connection, user.connectionId);
     } catch (err) {
       console.error('Error handling offer:', err);
     }
   }
 
-  private async handleAnswer({ user, data }: WebRtcSignal): Promise<void> {
+  private async handleAnswer({
+    user,
+    data: answer,
+  }: WebRtcSignal): Promise<void> {
     try {
       const connection = this._peerConnections.get(user.connectionId);
-      if (!connection?.currentRemoteDescription) return;
+      if (!connection) return;
 
-      const answer = JSON.parse(data);
       await connection.setRemoteDescription(new RTCSessionDescription(answer));
     } catch (err) {
       console.error('Error handling answer:', err);
@@ -135,12 +136,12 @@ export class WebRtcService {
 
   private async handleIceCandidate({
     user,
-    data,
-  }: WebRtcSignal): Promise<void> {
+    candidate: candidateData,
+  }: WebRtcCandidate): Promise<void> {
     try {
       const connection = this._peerConnections.get(user.connectionId);
       if (!connection) return;
-      const candidate: RTCIceCandidateInit = JSON.parse(data);
+      const candidate: RTCIceCandidateInit = JSON.parse(candidateData);
       await connection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
       console.error('Error handling ICE candidate:', err);
