@@ -88,28 +88,30 @@ export class SignalRService {
     await this._hubConnection.invoke('SendMessage', this._roomName, message);
   }
 
-  public async onIceCandidate(candidate: RTCIceCandidate, connectionId: string) {
+  public async onIceCandidate(
+    candidate: RTCIceCandidate,
+    targetConnectionId: string
+  ) {
     await this._hubConnection.invoke(
       'SendICECandidate',
       this._roomName,
-      connectionId,
+      targetConnectionId,
       JSON.stringify(candidate)
     );
   }
 
   public async sendOffer(offer: RTCSessionDescriptionInit) {
-    console.log('sendOffer', offer);
-    await this._hubConnection.invoke(
-      'SendOffer',
-      this._roomName,
-      offer
-    );
+    await this._hubConnection.invoke('SendOffer', this._roomName, offer);
   }
 
-  public async sendAnswer(answer: RTCSessionDescriptionInit) {
+  public async sendAnswer(
+    answer: RTCSessionDescriptionInit,
+    targetConnectionId: string
+  ) {
     await this._hubConnection.invoke(
       'SendAnswer',
       this._roomName,
+      targetConnectionId,
       answer
     );
   }
