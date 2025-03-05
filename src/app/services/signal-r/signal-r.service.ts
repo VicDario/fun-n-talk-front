@@ -2,6 +2,7 @@ import { EventEmitter, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
 import { Message } from '@interfaces/message.interface';
 import { User } from '@interfaces/user.interface';
+import { WebRtcCandidate } from '@interfaces/web-rtc-candidate.interface';
 import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
 import {
   HubConnection,
@@ -18,7 +19,7 @@ export class SignalRService {
   private _messageEventEmitter = new EventEmitter<Message>();
   private _offerEventEmitter = new EventEmitter<WebRtcSignal>();
   private _answerEventEmitter = new EventEmitter<WebRtcSignal>();
-  private _iceCandidateEventEmitter = new EventEmitter<WebRtcSignal>();
+  private _iceCandidateEventEmitter = new EventEmitter<WebRtcCandidate>();
 
   constructor() {
     this._hubConnection = new HubConnectionBuilder()
@@ -69,7 +70,7 @@ export class SignalRService {
     this._hubConnection.on('ReceiveAnswer', (signal: WebRtcSignal) =>
       this._answerEventEmitter.emit(signal)
     );
-    this._hubConnection.on('ReceiveICECandidate', (signal: WebRtcSignal) =>
+    this._hubConnection.on('ReceiveICECandidate', (signal: WebRtcCandidate) =>
       this._iceCandidateEventEmitter.emit(signal)
     );
   }
