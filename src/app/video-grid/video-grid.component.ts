@@ -22,18 +22,11 @@ export class VideoGridComponent {
 
   async startLocalStream() {
     const stream = await this._mediaService.getLocalStream();
+    stream.getAudioTracks().forEach((track) => (track.enabled = false));
     this.localStream.set(stream);
   }
 
-  public get remoteStreams() {
+  public get remoteStreamsConnections() {
     return this._webRtcService.remoteStreams;
-  }
-
-  public get gridClass() {
-    const count = this.remoteStreams().length;
-    if (count <= 1) return 'grid-cols-1';
-    if (count <= 4) return 'grid-cols-2';
-    if (count <= 9) return 'grid-cols-3';
-    return 'grid-cols-4';
   }
 }
