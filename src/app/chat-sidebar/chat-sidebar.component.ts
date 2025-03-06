@@ -24,6 +24,7 @@ export class ChatSidebarComponent {
     const messageInput = target.elements.namedItem(
       'message'
     ) as HTMLInputElement;
+    if (!messageInput.value.length) return;
     this._chatService.sendMessage(messageInput.value);
     target.reset();
   }
