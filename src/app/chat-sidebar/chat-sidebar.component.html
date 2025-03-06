@@ -1,48 +1,61 @@
-<div class="w-80 h-full bg-white border-l flex flex-col">
-  <div class="p-4 border-b">
-    <h2 class="text-lg font-semibold text-gray-800">Chat</h2>
-  </div>
-  <div class="flex-1 overflow-y-auto p-4 space-y-4">
-    @for (data of conversation(); track data.timestamp) {
-    <div
-      class="flex flex-col"
-      [ngClass]="{ 'items-end': data.user.connectionId === connectionId }"
-    >
+<div class="relative">
+  <button
+    (click)="toggleChat()"
+    class="fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg md:hidden"
+  >
+    {{ isChatOpen() ? 'Close' : 'Chat' }}
+  </button>
+
+  <div
+    class="fixed bottom-0 right-0 w-80 h-full md:h-[80vh] md:w-96 sm:h-full bg-white border-l shadow-lg flex flex-col transition-transform transform"
+    [ngClass]="{ 'translate-x-0': isChatOpen(), 'translate-x-full': !isChatOpen(), 'md:translate-x-0': true }"
+  >
+    <div class="p-4 border-b flex justify-between items-center">
+      <h2 class="text-lg font-semibold text-gray-800">Chat</h2>
+      <button (click)="toggleChat()" class="md:hidden text-gray-500">&times;</button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      @for (data of conversation(); track data.timestamp) {
       <div
-        class="max-w-[80%] rounded-lg px-3 py-2"
-        [ngClass]="{
-          'bg-blue-500 text-white': data.user.connectionId === connectionId,
-          'bg-gray-200': data.user.connectionId !== connectionId
-        }"
+        class="flex flex-col"
+        [ngClass]="{ 'items-end': data.user.connectionId === connectionId }"
       >
-        @if (data.user.connectionId !== connectionId) {
-        <p class="text-xs font-medium">
-          {{ data.user.username }}
-        </p>
-        }
-        <p>{{ data.message }}</p>
+        <div
+          class="max-w-[80%] rounded-lg px-3 py-2"
+          [ngClass]="{
+            'bg-blue-500 text-white': data.user.connectionId === connectionId,
+            'bg-gray-200': data.user.connectionId !== connectionId
+          }"
+        >
+          @if (data.user.connectionId !== connectionId) {
+          <p class="text-xs font-medium">
+            {{ data.user.username }}
+          </p>
+          }
+          <p>{{ data.message }}</p>
+        </div>
+        <span class="text-xs text-gray-500 mt-1">
+          {{ data.timestamp | date : "shortTime" }}
+        </span>
       </div>
-      <span class="text-xs text-gray-500 mt-1">
-        {{ data.timestamp | date : "shortTime" }}
-      </span>
+      }
     </div>
-    }
+    <form (ngSubmit)="sendMessage($event)" class="p-4 border-t">
+      <div class="flex space-x-2">
+        <input
+          type="text"
+          name="message"
+          class="flex-1 px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
+          placeholder="Type a message..."
+          autocomplete="off"
+        />
+        <button
+          type="submit"
+          class="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+        >
+          Send
+        </button>
+      </div>
+    </form>
   </div>
-  <form (ngSubmit)="sendMessage($event)" class="p-4 border-t">
-    <div class="flex space-x-2">
-      <input
-        type="text"
-        name="message"
-        class="flex-1 px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
-        placeholder="Type a message..."
-        autocomplete="off"
-      />
-      <button
-        type="submit"
-        class="px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-      >
-        Send
-      </button>
-    </div>
-  </form>
 </div>

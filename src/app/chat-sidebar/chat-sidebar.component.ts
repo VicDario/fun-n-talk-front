@@ -13,6 +13,7 @@ import { ChatService } from '@services/chat/chat.service';
 export class ChatSidebarComponent {
   private readonly _chatService = inject(ChatService);
   public conversation: WritableSignal<Message[]>;
+  public isChatOpen: WritableSignal<boolean> = signal(false);
 
   constructor() {
     this.conversation = this._chatService.messages;
@@ -29,5 +30,8 @@ export class ChatSidebarComponent {
 
   public get connectionId(): string {
     return this._chatService.connectionId;
+  }
+  public toggleChat(): void {
+    this.isChatOpen.update((state) => !state);
   }
 }
