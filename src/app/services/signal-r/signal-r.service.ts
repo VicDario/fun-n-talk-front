@@ -20,6 +20,8 @@ export class SignalRService {
   private _offerEventEmitter = new EventEmitter<WebRtcSignal>();
   private _answerEventEmitter = new EventEmitter<WebRtcSignal>();
   private _iceCandidateEventEmitter = new EventEmitter<WebRtcCandidate>();
+  private _leaveRoomEventEmitter = new EventEmitter<void>();
+  private _userLeftEventEmitter = new EventEmitter<User>();
 
   constructor() {
     this._hubConnection = new HubConnectionBuilder()
@@ -57,7 +59,7 @@ export class SignalRService {
     });
 
     this._hubConnection.on('UserLeft', (user: User) => {
-      console.log(user);
+      this._userLeftEventEmitter.emit(user);
     });
 
     this._hubConnection.on('ReceiveMessage', (message: Message) =>
@@ -82,6 +84,8 @@ export class SignalRService {
 
   private async leaveRoom() {
     await this._hubConnection.invoke('LeaveRoom', this._roomName);
+    await this._hubConnection.stop();
+    this._leaveRoomEventEmitter.emit();
   }
 
   public async sendMessage(message: string) {
@@ -136,5 +140,11 @@ export class SignalRService {
   }
   public get iceCandidateEventEmitter() {
     return this._iceCandidateEventEmitter;
+  }
+  public get leaveRoomEventEmitter() {
+    return this._leaveRoomEventEmitter;
+  }
+  public get userLeftEventEmitter() {
+    return this._userLeftEventEmitter;
   }
 }

@@ -25,6 +25,12 @@ export class WebRtcService {
     this._signalRService.iceCandidateEventEmitter.subscribe((signal) =>
       this.handleIceCandidate(signal)
     );
+    this._signalRService.leaveRoomEventEmitter.subscribe(() =>
+      this.stopAllConnections()
+    );
+    this._signalRService.userLeftEventEmitter.subscribe((user) =>
+      this.closePeerConnection(user.connectionId)
+    );
   }
 
   public addStreamToPeers(stream: MediaStream): void {
@@ -148,11 +154,19 @@ export class WebRtcService {
     }
   }
 
-  public closePeerConnection(connectionId: string): void {
+  private closePeerConnection(connectionId: string): void {
     const connection = this._peerConnections.get(connectionId);
     if (!connection) return;
+    this.remoteStreams.update((remoteStreams) =>
+      remoteStreams.filter((stream) => stream.connectionId !== connectionId)
+    );
     connection.close();
     this._peerConnections.delete(connectionId);
+  }
+
+  private stopAllConnections() {
+    for (const connection of this._peerConnections.keys())
+      this.closePeerConnection(connection);
   }
 
   public get remoteStreams() {
