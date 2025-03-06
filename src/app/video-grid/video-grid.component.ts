@@ -13,8 +13,6 @@ export class VideoGridComponent {
   private readonly _mediaService = inject(MediaService);
   private readonly _webRtcService = inject(WebRtcService);
   public readonly localStream = signal<MediaStream | null>(null);
-  public isVideoEnabled = true;
-  public isAudioEnabled = true;
 
   ngOnInit() {
     this.startLocalStream();
