@@ -25,7 +25,7 @@ export class ChatRoomComponent {
     this._router.navigate(['/']);
   }
 
-  public toggleAudio(): void {
+  public toggleMicrophone(): void {
     this.isMicrophoneEnabled = !this.isMicrophoneEnabled;
     this._mediaService.toggleAudio(this.isMicrophoneEnabled);
   }
