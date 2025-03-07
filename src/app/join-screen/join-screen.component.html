@@ -3,7 +3,11 @@
     <h2 class="mb-6 text-2xl font-bold text-center text-gray-800">
       Join Video Chat
     </h2>
-    <form (ngSubmit)="joinRoom($event)" class="flex flex-col space-y-4">
+    <form
+      [formGroup]="joinForm"
+      (ngSubmit)="onSubmit()"
+      class="flex flex-col space-y-4"
+    >
       <div>
         <label
           for="roomName"
@@ -14,10 +18,15 @@
           id="roomName"
           type="text"
           class="form-control"
-          name="roomName"
+          formControlName="roomName"
           required
           class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
         />
+        @if (isValidField('roomName')) {
+        <span class="text-red-600">
+          {{ getFieldError("roomName") }}
+        </span>
+        }
       </div>
       <div>
         <label
@@ -28,14 +37,20 @@
         <input
           id="userName"
           type="text"
-          name="userName"
-          required
+          formControlName="userName"
           class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:border-blue-500"
         />
+        @if (isValidField('userName')) {
+        <span class="text-red-600">
+          {{ getFieldError("userName") }}
+        </span>
+        }
       </div>
       <button
         type="submit"
+        [disabled]="joinForm.invalid"
         class="w-full px-4 py-2 text-white bg-blue-500 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+        [ngClass]="{ 'cursor-not-allowed': joinForm.invalid }"
       >
         Join Room
       </button>
