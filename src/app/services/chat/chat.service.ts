@@ -5,7 +5,7 @@ import { SignalRService } from '@services/signal-r/signal-r.service';
 import type { Message } from '@interfaces/message.interface';
 import type { User } from '@interfaces/user.interface';
 import { WebRtcService } from '@services/web-rtc/web-rtc.service';
-import { EMPTY, mergeMap, Observable, switchMap, tap } from 'rxjs';
+import { EMPTY, mergeMap, Observable, Subscription, switchMap, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +18,7 @@ export class ChatService {
   private _roomName?: string;
   private _participants = signal<User[]>([]);
   private _messages = signal<Message[]>([]);
+  private _messageSubscription?: Subscription;
 
   public set userName(value: string) {
     this._userName = value;
@@ -46,6 +47,7 @@ export class ChatService {
 
   public stopConnection(): void {
     this._signalRService.stopConnection();
+    this.destroyMessageEvent();
   }
 
   private getParticipants(): Observable<User[]> {
@@ -59,9 +61,12 @@ export class ChatService {
   }
 
   private onMessageEvent(): void {
-    this._signalRService.messageEventEmitter.subscribe((message) => {
+    this._messageSubscription = this._signalRService.messageEventEmitter.subscribe((message) => {
       this._messages.update((messages) => [...messages, message]);
     });
+  }
+  private destroyMessageEvent(): void {
+    this._messageSubscription!.unsubscribe();
   }
 
   public get connectionId(): string {
