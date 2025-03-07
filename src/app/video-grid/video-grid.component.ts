@@ -20,7 +20,6 @@ export class VideoGridComponent {
 
   async startLocalStream() {
     const stream = await this._mediaService.getLocalStream();
-    stream.getAudioTracks().forEach((track) => (track.enabled = false));
     this.localStream.set(stream);
   }
 

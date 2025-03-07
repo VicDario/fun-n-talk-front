@@ -12,7 +12,7 @@
     [srcObject]="localStream()"
     autoplay
     playsinline
-    muted
+    [muted]="true"
     class="absolute right-0 bottom-0 w-50 h-50 object-cover rounded-lg"
   ></video>
   } @for (connection of remoteStreamsConnections(); track
@@ -22,6 +22,7 @@
       [srcObject]="connection.stream"
       autoplay
       playsinline
+      [muted]="false"
       class="w-120 h-100 object-cover rounded-lg"
     ></video>
   </div>
