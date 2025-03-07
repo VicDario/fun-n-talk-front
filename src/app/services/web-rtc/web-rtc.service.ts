@@ -34,7 +34,7 @@ export class WebRtcService {
   }
 
   public addStreamToPeers(stream: MediaStream): void {
-    for (const peerId in this._peerConnections.keys()) {
+    for (const peerId of this._peerConnections.keys()) {
       stream.getTracks().forEach((track) => {
         this._peerConnections.get(peerId)!.addTrack(track, stream);
       });
