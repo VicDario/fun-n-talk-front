@@ -63,6 +63,11 @@ export class WebRtcService {
       }
     };
 
+    peerConnection.oniceconnectionstatechange = () => {
+      if (peerConnection.iceConnectionState === 'disconnected')
+        this.closePeerConnection(connectionId);
+    };
+
     peerConnection.addEventListener('track', async (event) => {
       const [stream] = event.streams;
       this._remoteStreams.update((remoteStreams) => {
