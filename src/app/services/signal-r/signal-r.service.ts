@@ -30,13 +30,12 @@ export class SignalRService {
       .withKeepAliveInterval(5000)
       .withAutomaticReconnect()
       .build();
-
-    this.addEvents();
   }
 
   public async startConnection() {
     try {
       await this._hubConnection.start();
+      this.addEvents();
       if (!this.isConnected) throw new Error('Connection failed');
     } catch (error) {
       return console.error(error);
@@ -45,7 +44,8 @@ export class SignalRService {
 
   public async stopConnection() {
     try {
-      this.leaveRoom();
+      await this.leaveRoom();
+      this.disableEvents();
       await this._hubConnection.stop();
       if (this.isConnected) throw new Error('Disconnection failed');
     } catch (error) {
@@ -53,7 +53,7 @@ export class SignalRService {
     }
   }
 
-  public addEvents() {
+  private addEvents() {
     this._hubConnection.on('UserJoined', (user: User) => {
       console.log(user);
     });
@@ -77,6 +77,18 @@ export class SignalRService {
     );
   }
 
+  private disableEvents() {
+    const events = [
+      'UserJoined',
+      'UserLeft',
+      'ReceiveMessage',
+      'ReceiveOffer',
+      'ReceiveAnswer',
+      'ReceiveICECandidate',
+    ];
+    events.forEach((event) => this._hubConnection.off(event));
+  }
+
   public async joinRoom(roomName: string, userName: string) {
     this._roomName = roomName;
     await this._hubConnection.invoke('JoinRoom', roomName, userName);
@@ -84,7 +96,6 @@ export class SignalRService {
 
   private async leaveRoom() {
     await this._hubConnection.invoke('LeaveRoom', this._roomName);
-    await this._hubConnection.stop();
     this._leaveRoomEventEmitter.emit();
   }
 
