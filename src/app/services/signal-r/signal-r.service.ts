@@ -3,8 +3,10 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
 import { Message } from '@interfaces/message.interface';
 import { User, UserOptions } from '@interfaces/user.interface';
-import { WebRtcCandidate } from '@interfaces/web-rtc-candidate.interface';
-import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
+import type {
+  WebRtcCandidate,
+  WebRtcSignal,
+} from '@interfaces/web-rtc.interface';
 import {
   HubConnection,
   HubConnectionBuilder,
@@ -33,16 +35,18 @@ export class SignalRService {
   public async startConnection(options: UserOptions) {
     try {
       await this._hubConnection.start();
-      await this._hubConnection.invoke('JoinRoom', options.roomName, options.username);
+      await this._hubConnection.invoke(
+        'JoinRoom',
+        options.roomName,
+        options.username
+      );
       this.addEvents();
       this._store.user = options;
       this._store.connectionId = this._hubConnection.connectionId!;
-      this.getParticipants(options.roomName).subscribe(
-        (participants) => {
-          this._store.participants = participants;
-          this._chatMediator.joinRoom();
-        }
-      );
+      this.getParticipants(options.roomName).subscribe((participants) => {
+        this._store.participants = participants;
+        this._chatMediator.joinRoom();
+      });
     } catch (error) {
       console.error(error);
     }
@@ -88,8 +92,9 @@ export class SignalRService {
     this._chatMediator.onSendAnswer$.subscribe(({ answer, connectionId }) =>
       this.sendAnswer(answer, connectionId)
     );
-    this._chatMediator.onIceCandidate$.subscribe(({ candidate, connectionId }) =>
-      this.sendIceCandidate(candidate, connectionId)
+    this._chatMediator.onIceCandidate$.subscribe(
+      ({ candidate, connectionId }) =>
+        this.sendIceCandidate(candidate, connectionId)
     );
   }
 

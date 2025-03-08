@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Message } from '@interfaces/message.interface';
-import { User, UserOptions } from '@interfaces/user.interface';
-import { WebRtcCandidate } from '@interfaces/web-rtc-candidate.interface';
-import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
+import type { User } from '@interfaces/user.interface';
+import type {
+  WebRtcCandidate,
+  WebRtcSignal,
+} from '@interfaces/web-rtc.interface';
 import { Subject } from 'rxjs';
 
 @Injectable({

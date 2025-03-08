@@ -1,8 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
 import { MediaService } from '../media/media.service';
-import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
-import { WebRtcCandidate } from '@interfaces/web-rtc-candidate.interface';
+import type {
+  WebRtcCandidate,
+  WebRtcSignal,
+} from '@interfaces/web-rtc.interface';
 import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
 import { StoreService } from '@services/store/store.service';
 
