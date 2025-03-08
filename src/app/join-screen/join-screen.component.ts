@@ -1,8 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ChatService } from '../services/chat/chat.service';
 import { NgClass } from '@angular/common';
+import { SignalRService } from '@services/signal-r/signal-r.service';
+import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 
 @Component({
   selector: 'app-join-screen',
@@ -12,12 +13,13 @@ import { NgClass } from '@angular/common';
 })
 export class JoinScreenComponent {
   private readonly _router = inject(Router);
-  private readonly _chatService = inject(ChatService);
+  private readonly _signalRService = inject(SignalRService);
+  private readonly _ = inject(WebRtcService);
   public joinForm: FormGroup;
 
   constructor() {
     this.joinForm = new FormGroup({
-      userName: new FormControl('', [Validators.required, Validators.minLength(3)]),
+      username: new FormControl('', [Validators.required, Validators.minLength(3)]),
       roomName: new FormControl('', [Validators.required, Validators.minLength(3)]),
     });
   }
@@ -32,16 +34,14 @@ export class JoinScreenComponent {
   }
 
   public joinRoom({
-    userName,
+    username,
     roomName,
   }: {
-    userName: string;
+    username: string;
     roomName: string;
   }): void {
-    this._chatService.userName = userName;
-    this._chatService.roomName = roomName;
-    this._chatService
-      .initConnection()
+    this._signalRService
+      .startConnection({ username, roomName })
       .then(() => this._router.navigate(['/chat-room']));
   }
 

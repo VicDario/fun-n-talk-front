@@ -1,11 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { ChatService } from '@services/chat/chat.service';
 import { FormsModule } from '@angular/forms';
 import { ChatSidebarComponent } from '@app/chat-sidebar/chat-sidebar.component';
 import { VideoGridComponent } from '@app/video-grid/video-grid.component';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { MediaService } from '@services/media/media.service';
+import { SignalRService } from '@services/signal-r/signal-r.service';
+import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 
 @Component({
   selector: 'app-chat-room',
@@ -14,14 +15,14 @@ import { MediaService } from '@services/media/media.service';
   styleUrl: './chat-room.component.css',
 })
 export class ChatRoomComponent {
-  private readonly _chatService = inject(ChatService);
   private readonly _mediaService = inject(MediaService);
   private readonly _router = inject(Router);
+  private readonly _signalRService = inject(SignalRService);
   public isVideoEnabled = true;
   public isMicrophoneEnabled = true;
 
   public leaveRoom(): void {
-    this._chatService.stopConnection();
+    this._signalRService.stopConnection();
     this._router.navigate(['/']);
   }
 

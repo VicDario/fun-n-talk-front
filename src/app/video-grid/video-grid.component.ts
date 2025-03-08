@@ -1,7 +1,7 @@
 import { NgClass } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { MediaService } from '@services/media/media.service';
-import { WebRtcService } from '@services/web-rtc/web-rtc.service';
+import { StoreService } from '@services/store/store.service';
 
 @Component({
   selector: 'app-video-grid',
@@ -11,7 +11,7 @@ import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 })
 export class VideoGridComponent {
   private readonly _mediaService = inject(MediaService);
-  private readonly _webRtcService = inject(WebRtcService);
+  private readonly _store = inject(StoreService);
   public readonly localStream = signal<MediaStream | null>(null);
 
   ngOnInit() {
@@ -24,6 +24,6 @@ export class VideoGridComponent {
   }
 
   public get remoteStreamsConnections() {
-    return this._webRtcService.remoteStreams;
+    return this._store.remoteStreams;
   }
 }

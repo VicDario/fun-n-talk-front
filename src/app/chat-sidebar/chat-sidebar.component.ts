@@ -2,7 +2,8 @@ import { DatePipe, NgClass } from '@angular/common';
 import { Component, inject, signal, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Message } from '@interfaces/message.interface';
-import { ChatService } from '@services/chat/chat.service';
+import { SignalRService } from '@services/signal-r/signal-r.service';
+import { StoreService } from '@services/store/store.service';
 
 @Component({
   selector: 'app-chat-sidebar',
@@ -11,28 +12,29 @@ import { ChatService } from '@services/chat/chat.service';
   styleUrl: './chat-sidebar.component.css',
 })
 export class ChatSidebarComponent {
-  private readonly _chatService = inject(ChatService);
-  public conversation: WritableSignal<Message[]>;
+  private readonly _signalRService = inject(SignalRService);
+  private readonly _store = inject(StoreService);
   public isChatOpen: WritableSignal<boolean> = signal(false);
-
-  constructor() {
-    this.conversation = this._chatService.messages;
-  }
 
   public sendMessage(event: SubmitEvent): void {
     const target = event.target as HTMLFormElement;
     const messageInput = target.elements.namedItem(
       'message'
     ) as HTMLInputElement;
-    if (!messageInput.value.length) return;
-    this._chatService.sendMessage(messageInput.value);
+    const message = messageInput.value.trim();
+    if (!message.length) return;
+    this._signalRService.sendMessage(message);
     target.reset();
   }
 
   public get connectionId(): string {
-    return this._chatService.connectionId;
+    return this._store.connectionId!;
   }
   public toggleChat(): void {
     this.isChatOpen.update((state) => !state);
+  }
+
+  public get conversation(){
+    return this._store.messages;
   }
 }

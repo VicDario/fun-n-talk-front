@@ -1,7 +1,8 @@
-import { EventEmitter, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
 import { Message } from '@interfaces/message.interface';
-import { User } from '@interfaces/user.interface';
+import { User, UserOptions } from '@interfaces/user.interface';
 import { WebRtcCandidate } from '@interfaces/web-rtc-candidate.interface';
 import { WebRtcSignal } from '@interfaces/web-rtc-signal.interface';
 import {
@@ -9,153 +10,137 @@ import {
   HubConnectionBuilder,
   LogLevel,
 } from '@microsoft/signalr';
+import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
+import { StoreService } from '@services/store/store.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SignalRService {
+  private readonly _http = inject(HttpClient);
+  private readonly _store = inject(StoreService);
   private readonly _hubConnection: HubConnection;
-  private _roomName?: string;
-  private _messageEventEmitter = new EventEmitter<Message>();
-  private _offerEventEmitter = new EventEmitter<WebRtcSignal>();
-  private _answerEventEmitter = new EventEmitter<WebRtcSignal>();
-  private _iceCandidateEventEmitter = new EventEmitter<WebRtcCandidate>();
-  private _leaveRoomEventEmitter = new EventEmitter<void>();
-  private _userLeftEventEmitter = new EventEmitter<User>();
+  private readonly _chatMediator = inject(ChatMediatorService);
 
   constructor() {
     this._hubConnection = new HubConnectionBuilder()
       .withUrl(`${environment.apiUrl}/communicationHub`)
-      .configureLogging(LogLevel.Information)
-      .withKeepAliveInterval(5000)
+      .configureLogging(LogLevel.Warning)
       .withAutomaticReconnect()
       .build();
   }
 
-  public async startConnection() {
+  public async startConnection(options: UserOptions) {
     try {
       await this._hubConnection.start();
+      await this._hubConnection.invoke('JoinRoom', options.roomName, options.username);
       this.addEvents();
-      if (!this.isConnected) throw new Error('Connection failed');
+      this._store.user = options;
+      this._store.connectionId = this._hubConnection.connectionId!;
+      this.getParticipants(options.roomName).subscribe(
+        (participants) => {
+          this._store.participants = participants;
+          this._chatMediator.joinRoom();
+        }
+      );
     } catch (error) {
-      return console.error(error);
+      console.error(error);
     }
   }
 
   public async stopConnection() {
     try {
-      await this.leaveRoom();
-      this.disableEvents();
+      await this._hubConnection.invoke('LeaveRoom', this._store.user.roomName);
       await this._hubConnection.stop();
-      if (this.isConnected) throw new Error('Disconnection failed');
+      this._chatMediator.leaveRoom();
     } catch (error) {
       return console.error(error);
     }
   }
 
   private addEvents() {
-    this._hubConnection.on('UserJoined', (user: User) => {
-      console.log(user);
-    });
+    this._hubConnection.on('UserJoined', (user: User) =>
+      this._chatMediator.userJoined(user)
+    );
 
-    this._hubConnection.on('UserLeft', (user: User) => {
-      this._userLeftEventEmitter.emit(user);
-    });
+    this._hubConnection.on('UserLeft', (user: User) =>
+      this._chatMediator.userLeft(user)
+    );
 
     this._hubConnection.on('ReceiveMessage', (message: Message) =>
-      this._messageEventEmitter.emit(message)
+      this.handleReceivedMessage(message)
     );
 
     this._hubConnection.on('ReceiveOffer', (signal: WebRtcSignal) =>
-      this._offerEventEmitter.emit(signal)
+      this._chatMediator.receiveOffer(signal)
     );
+
     this._hubConnection.on('ReceiveAnswer', (signal: WebRtcSignal) =>
-      this._answerEventEmitter.emit(signal)
+      this._chatMediator.receiveAnswer(signal)
     );
+
     this._hubConnection.on('ReceiveICECandidate', (signal: WebRtcCandidate) =>
-      this._iceCandidateEventEmitter.emit(signal)
+      this._chatMediator.receiveIceCandidate(signal)
     );
-  }
 
-  private disableEvents() {
-    const events = [
-      'UserJoined',
-      'UserLeft',
-      'ReceiveMessage',
-      'ReceiveOffer',
-      'ReceiveAnswer',
-      'ReceiveICECandidate',
-    ];
-    events.forEach((event) => this._hubConnection.off(event));
-  }
+    this._chatMediator.onSendOffer$.subscribe((offer) => this.sendOffer(offer));
 
-  public async joinRoom(roomName: string, userName: string) {
-    this._roomName = roomName;
-    await this._hubConnection.invoke('JoinRoom', roomName, userName);
-  }
-
-  private async leaveRoom() {
-    await this._hubConnection.invoke('LeaveRoom', this._roomName);
-    this._leaveRoomEventEmitter.emit();
+    this._chatMediator.onSendAnswer$.subscribe(({ answer, connectionId }) =>
+      this.sendAnswer(answer, connectionId)
+    );
+    this._chatMediator.onIceCandidate$.subscribe(({ candidate, connectionId }) =>
+      this.sendIceCandidate(candidate, connectionId)
+    );
   }
 
   public async sendMessage(message: string) {
-    await this._hubConnection.invoke('SendMessage', this._roomName, message);
-  }
-
-  public async onIceCandidate(
-    candidate: RTCIceCandidate,
-    targetConnectionId: string
-  ) {
     await this._hubConnection.invoke(
-      'SendICECandidate',
-      this._roomName,
-      targetConnectionId,
-      JSON.stringify(candidate)
+      'SendMessage',
+      this._store.user.roomName,
+      message
     );
   }
 
-  public async sendOffer(offer: RTCSessionDescriptionInit) {
-    await this._hubConnection.invoke('SendOffer', this._roomName, offer);
+  private handleReceivedMessage(message: Message) {
+    this._store.messages.update((messages) => [...messages, message]);
   }
 
-  public async sendAnswer(
-    answer: RTCSessionDescriptionInit,
-    targetConnectionId: string
-  ) {
+  public async sendOffer(offer: RTCSessionDescriptionInit) {
+    await this._hubConnection.invoke(
+      'SendOffer',
+      this._store.user.roomName,
+      offer
+    );
+  }
+
+  public async sendAnswer(answer: RTCSessionDescriptionInit, targetId: string) {
     await this._hubConnection.invoke(
       'SendAnswer',
-      this._roomName,
-      targetConnectionId,
+      this._store.user.roomName,
+      targetId,
       answer
     );
   }
 
-  public get connectionId() {
-    return this._hubConnection.connectionId;
+  public async sendIceCandidate(
+    candidate: RTCIceCandidateInit,
+    targetId: string
+  ) {
+    await this._hubConnection.invoke(
+      'SendICECandidate',
+      this._store.user.roomName,
+      targetId,
+      JSON.stringify(candidate)
+    );
+  }
+
+  private getParticipants(roomName: string) {
+    return this._http.get<User[]>(
+      `${environment.apiUrl}/api/communication/room/${roomName}/participants`
+    );
   }
 
   public get isConnected() {
     return this._hubConnection.state === 'Connected';
-  }
-
-  public get messageEventEmitter() {
-    return this._messageEventEmitter;
-  }
-
-  public get offerEventEmitter() {
-    return this._offerEventEmitter;
-  }
-  public get answerEventEmitter() {
-    return this._answerEventEmitter;
-  }
-  public get iceCandidateEventEmitter() {
-    return this._iceCandidateEventEmitter;
-  }
-  public get leaveRoomEventEmitter() {
-    return this._leaveRoomEventEmitter;
-  }
-  public get userLeftEventEmitter() {
-    return this._userLeftEventEmitter;
   }
 }
