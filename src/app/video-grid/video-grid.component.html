@@ -1,5 +1,5 @@
 <section
-  class="grid gap-4 w-full h-full relative"
+  class="flex gap-4 flex-wrap justify-center items-center w-full h-full relative"
   [ngClass]="{
   'grid-cols-1': remoteStreamsConnections().length <= 1,
   'grid-cols-2': remoteStreamsConnections().length <= 4 && remoteStreamsConnections().length > 1,
@@ -17,7 +17,6 @@
   ></video>
   } @for (connection of remoteStreamsConnections(); track
   connection.connectionId) {
-  <div class="w-full h-full place-items-center relative">
     <video
       [srcObject]="connection.stream"
       autoplay
@@ -25,6 +24,5 @@
       [muted]="false"
       class="w-120 h-100 object-cover rounded-lg"
     ></video>
-  </div>
   }
 </section>
