@@ -54,7 +54,7 @@ export class SignalRService {
 
   public async stopConnection() {
     try {
-      await this._hubConnection.invoke('LeaveRoom', this._store.user.roomName);
+      await this._hubConnection.invoke('LeaveRoom');
       await this._hubConnection.stop();
       this._chatMediator.leaveRoom();
     } catch (error) {
@@ -99,11 +99,7 @@ export class SignalRService {
   }
 
   public async sendMessage(message: string) {
-    await this._hubConnection.invoke(
-      'SendMessage',
-      this._store.user.roomName,
-      message
-    );
+    await this._hubConnection.invoke('SendMessage', message);
   }
 
   private handleReceivedMessage(message: Message) {
@@ -111,20 +107,11 @@ export class SignalRService {
   }
 
   public async sendOffer(offer: RTCSessionDescriptionInit) {
-    await this._hubConnection.invoke(
-      'SendOffer',
-      this._store.user.roomName,
-      offer
-    );
+    await this._hubConnection.invoke('SendOffer', offer);
   }
 
   public async sendAnswer(answer: RTCSessionDescriptionInit, targetId: string) {
-    await this._hubConnection.invoke(
-      'SendAnswer',
-      this._store.user.roomName,
-      targetId,
-      answer
-    );
+    await this._hubConnection.invoke('SendAnswer', targetId, answer);
   }
 
   public async sendIceCandidate(
@@ -133,7 +120,6 @@ export class SignalRService {
   ) {
     await this._hubConnection.invoke(
       'SendICECandidate',
-      this._store.user.roomName,
       targetId,
       JSON.stringify(candidate)
     );
