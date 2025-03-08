@@ -60,7 +60,6 @@ export class ChatMediatorService {
     this._iceCandidateSubject.next(candidate);
   }
   public joinRoom() {
-    console.log('Joining room AAAAAAAAAAAAAAAAAAAAAA');
     this._joinRoom.next();
   }
   public leaveRoom() {
