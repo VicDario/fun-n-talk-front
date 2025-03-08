@@ -1,5 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { SignalRService } from '@services/signal-r/signal-r.service';
@@ -19,8 +24,14 @@ export class JoinScreenComponent {
 
   constructor() {
     this.joinForm = new FormGroup({
-      username: new FormControl('', [Validators.required, Validators.minLength(3)]),
-      roomName: new FormControl('', [Validators.required, Validators.minLength(3)]),
+      username: new FormControl('', [
+        Validators.required,
+        Validators.minLength(3),
+      ]),
+      roomName: new FormControl('', [
+        Validators.required,
+        Validators.minLength(3),
+      ]),
     });
   }
 

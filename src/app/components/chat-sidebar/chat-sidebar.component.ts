@@ -34,7 +34,7 @@ export class ChatSidebarComponent {
     this.isChatOpen.update((state) => !state);
   }
 
-  public get conversation(){
+  public get conversation() {
     return this._store.messages;
   }
 }

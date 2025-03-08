@@ -1,12 +1,11 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ChatSidebarComponent } from '@app/chat-sidebar/chat-sidebar.component';
-import { VideoGridComponent } from '@app/video-grid/video-grid.component';
+import { ChatSidebarComponent } from '@components/chat-sidebar/chat-sidebar.component';
+import { VideoGridComponent } from '@components/video-grid/video-grid.component';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { MediaService } from '@services/media/media.service';
 import { SignalRService } from '@services/signal-r/signal-r.service';
-import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 
 @Component({
   selector: 'app-chat-room',
