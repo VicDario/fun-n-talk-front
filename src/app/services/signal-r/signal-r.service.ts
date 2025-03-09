@@ -56,6 +56,7 @@ export class SignalRService {
   public async stopConnection() {
     try {
       await this._hubConnection.invoke('LeaveRoom');
+      this.turnOffEvents();
       await this._hubConnection.stop();
       this._chatMediator.leaveRoom();
     } catch (error) {
@@ -97,6 +98,19 @@ export class SignalRService {
       ({ candidate, connectionId }) =>
         this.sendIceCandidate(candidate, connectionId)
     );
+  }
+
+  private turnOffEvents() {
+    const events = [
+      'UserJoined',
+      'UserLeft',
+      'ReceiveMessage',
+      'ReceiveOffer',
+      'ReceiveAnswer',
+      'ReceiveICECandidate',
+    ];
+    for (const event of events)
+      this._hubConnection.off(event);
   }
 
   public async sendMessage(message: string) {
