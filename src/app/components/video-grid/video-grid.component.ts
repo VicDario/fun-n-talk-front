@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { MediaService } from '@services/media/media.service';
 import { StoreService } from '@services/store/store.service';
 
@@ -9,7 +9,7 @@ import { StoreService } from '@services/store/store.service';
   templateUrl: './video-grid.component.html',
   styleUrl: './video-grid.component.css',
 })
-export class VideoGridComponent {
+export class VideoGridComponent implements OnInit {
   private readonly _mediaService = inject(MediaService);
   private readonly _store = inject(StoreService);
   public readonly localStream = signal<MediaStream | null>(null);

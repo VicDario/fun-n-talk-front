@@ -49,7 +49,7 @@ export class WebRtcService {
 
   public async createPeerConnection(
     connectionId: string,
-    isInitiator: boolean = false
+    isInitiator = false
   ): Promise<RTCPeerConnection | null> {
     if (this._peerConnections.has(connectionId))
       return this._peerConnections.get(connectionId)!;

@@ -1,7 +1,6 @@
 import { DatePipe, NgClass } from '@angular/common';
 import { Component, inject, signal, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Message } from '@interfaces/message.interface';
 import { SignalRService } from '@services/signal-r/signal-r.service';
 import { StoreService } from '@services/store/store.service';
 
