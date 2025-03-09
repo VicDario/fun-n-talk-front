@@ -2,8 +2,9 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
 import { MediaService } from '../media/media.service';
 import type {
-  WebRtcCandidate,
   WebRtcSignal,
+  WebRtcCandidate,
+  WebRtcIncomingSignal,
 } from '@interfaces/web-rtc.interface';
 import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
 import { StoreService } from '@services/store/store.service';
@@ -63,27 +64,38 @@ export class WebRtcService {
     });
 
     peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
+      if (event.candidate)
         this._chatMediator.onIceCandidate(event.candidate, connectionId);
-      }
     };
+
+    peerConnection.addEventListener('signalingstatechange', () => {
+      if (peerConnection.signalingState === 'closed')
+        this.closePeerConnection(connectionId);
+    });
 
     peerConnection.addEventListener('track', (event) => {
       const [stream] = event.streams;
       this._store.addOrReplaceRemoteStream({ connectionId, stream });
     });
 
-    if (isInitiator) await this.createOffer(peerConnection);
+    if (isInitiator) await this.createOffer(connectionId, peerConnection);
 
     this._peerConnections.set(connectionId, peerConnection);
     return peerConnection;
   }
 
-  private async createOffer(peerConnection: RTCPeerConnection): Promise<void> {
+  private async createOffer(
+    connectionId: string,
+    peerConnection: RTCPeerConnection
+  ): Promise<void> {
     try {
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      this._chatMediator.sendOffer(offer);
+      const offerData: WebRtcSignal = {
+        connectionId,
+        data: offer,
+      }
+      this._chatMediator.sendOffer(offerData);
     } catch (err) {
       console.error('Error creating offer:', err);
     }
@@ -96,13 +108,14 @@ export class WebRtcService {
     try {
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
-      this._chatMediator.sendAnswer(answer, connectionId);
+      const signal: WebRtcSignal = { connectionId, data: answer };
+      this._chatMediator.sendAnswer(signal);
     } catch (err) {
       console.error('Error creating answer:', err);
     }
   }
 
-  private async handleOffer({ user, data: offer }: WebRtcSignal) {
+  private async handleOffer({ user, data: offer }: WebRtcIncomingSignal) {
     try {
       const connection =
         this._peerConnections.get(user.connectionId) ??
@@ -116,12 +129,13 @@ export class WebRtcService {
     }
   }
 
-  private async handleAnswer({ user, data: answer }: WebRtcSignal) {
+  private async handleAnswer({ user, data }: WebRtcIncomingSignal) {
     try {
       const connection = this._peerConnections.get(user.connectionId);
       if (!connection) return;
 
-      await connection.setRemoteDescription(new RTCSessionDescription(answer));
+      const answer = new RTCSessionDescription(data);
+      await connection.setRemoteDescription(answer);
     } catch (err) {
       console.error('Error handling answer:', err);
     }
@@ -147,9 +161,8 @@ export class WebRtcService {
     if (!connection) return;
 
     this._store.removeRemoteStream(connectionId);
-
-    connection.close();
     this._peerConnections.delete(connectionId);
+    connection.close();
   }
 
   private stopAllConnections() {
