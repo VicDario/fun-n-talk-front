@@ -1,7 +1,7 @@
 import { Injectable, signal, WritableSignal } from '@angular/core';
 import { Message } from '@interfaces/message.interface';
 import { User, UserOptions } from '@interfaces/user.interface';
-import { WebRtcStreamConnection } from '@interfaces/web-rtc-stream.interface';
+import { WebRtcStreamConnection } from '@interfaces/web-rtc.interface';
 
 @Injectable({
   providedIn: 'root',
