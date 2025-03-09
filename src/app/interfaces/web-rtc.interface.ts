@@ -5,7 +5,7 @@ export interface WebRtcCandidate {
   candidate: string,
 }
 
-export interface WebRtcSignal {
+export interface WebRtcIncomingSignal {
   user: User,
   data: RTCSessionDescriptionInit,
 }
@@ -13,4 +13,9 @@ export interface WebRtcSignal {
 export interface WebRtcStreamConnection {
   connectionId: string;
   stream: MediaStream;
+}
+
+export interface WebRtcSignal {
+  connectionId: string;
+  data: RTCSessionDescriptionInit;
 }

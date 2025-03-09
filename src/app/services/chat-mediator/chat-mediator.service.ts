@@ -3,6 +3,7 @@ import { Message } from '@interfaces/message.interface';
 import type { User } from '@interfaces/user.interface';
 import type {
   WebRtcCandidate,
+  WebRtcIncomingSignal,
   WebRtcSignal,
 } from '@interfaces/web-rtc.interface';
 import { Subject } from 'rxjs';
@@ -15,13 +16,10 @@ export class ChatMediatorService {
   private _messageSubject = new Subject<Message>();
   private _userJoinedSubject = new Subject<User>();
   private _userLeftSubject = new Subject<User>();
-  private _offerSubject = new Subject<WebRtcSignal>();
-  private _sendOfferSubject = new Subject<RTCSessionDescriptionInit>();
-  private _answerSubject = new Subject<WebRtcSignal>();
-  private _sendAnswerSubject = new Subject<{
-    answer: RTCSessionDescriptionInit;
-    connectionId: string;
-  }>();
+  private _offerSubject = new Subject<WebRtcIncomingSignal>();
+  private _sendOfferSubject = new Subject<WebRtcSignal>();
+  private _answerSubject = new Subject<WebRtcIncomingSignal>();
+  private _sendAnswerSubject = new Subject<WebRtcSignal>();
   private _sendIceCandidateSubject = new Subject<{
     candidate: RTCIceCandidate;
     connectionId: string;
@@ -43,16 +41,16 @@ export class ChatMediatorService {
   public userLeft(user: User) {
     this._userLeftSubject.next(user);
   }
-  public sendOffer(signal: RTCSessionDescriptionInit) {
+  public sendOffer(signal: WebRtcSignal) {
     this._sendOfferSubject.next(signal);
   }
-  public receiveOffer(signal: WebRtcSignal) {
+  public receiveOffer(signal: WebRtcIncomingSignal) {
     this._offerSubject.next(signal);
   }
-  public sendAnswer(answer: RTCSessionDescriptionInit, connectionId: string) {
-    this._sendAnswerSubject.next({ answer, connectionId });
+  public sendAnswer(signal: WebRtcSignal) {
+    this._sendAnswerSubject.next(signal);
   }
-  public receiveAnswer(signal: WebRtcSignal) {
+  public receiveAnswer(signal: WebRtcIncomingSignal) {
     this._answerSubject.next(signal);
   }
   public onIceCandidate(candidate: RTCIceCandidate, connectionId: string) {
