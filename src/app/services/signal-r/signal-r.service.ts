@@ -109,8 +109,7 @@ export class SignalRService {
       'ReceiveAnswer',
       'ReceiveICECandidate',
     ];
-    for (const event of events)
-      this._hubConnection.off(event);
+    for (const event of events) this._hubConnection.off(event);
   }
 
   public async sendMessage(message: string) {
@@ -122,11 +121,19 @@ export class SignalRService {
   }
 
   public async sendOffer(signal: WebRtcSignal) {
-    await this._hubConnection.invoke('SendOffer', signal.connectionId, signal.data);
+    await this._hubConnection.invoke(
+      'SendOffer',
+      signal.connectionId,
+      signal.data
+    );
   }
 
   public async sendAnswer(signal: WebRtcSignal) {
-    await this._hubConnection.invoke('SendAnswer', signal.connectionId, signal.data);
+    await this._hubConnection.invoke(
+      'SendAnswer',
+      signal.connectionId,
+      signal.data
+    );
   }
 
   public async sendIceCandidate(
