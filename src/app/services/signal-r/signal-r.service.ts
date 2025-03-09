@@ -5,6 +5,7 @@ import { Message } from '@interfaces/message.interface';
 import { User, UserOptions } from '@interfaces/user.interface';
 import type {
   WebRtcCandidate,
+  WebRtcIncomingSignal,
   WebRtcSignal,
 } from '@interfaces/web-rtc.interface';
 import {
@@ -75,11 +76,11 @@ export class SignalRService {
       this.handleReceivedMessage(message)
     );
 
-    this._hubConnection.on('ReceiveOffer', (signal: WebRtcSignal) =>
+    this._hubConnection.on('ReceiveOffer', (signal: WebRtcIncomingSignal) =>
       this._chatMediator.receiveOffer(signal)
     );
 
-    this._hubConnection.on('ReceiveAnswer', (signal: WebRtcSignal) =>
+    this._hubConnection.on('ReceiveAnswer', (signal: WebRtcIncomingSignal) =>
       this._chatMediator.receiveAnswer(signal)
     );
 
@@ -89,8 +90,8 @@ export class SignalRService {
 
     this._chatMediator.onSendOffer$.subscribe((offer) => this.sendOffer(offer));
 
-    this._chatMediator.onSendAnswer$.subscribe(({ answer, connectionId }) =>
-      this.sendAnswer(answer, connectionId)
+    this._chatMediator.onSendAnswer$.subscribe((signal) =>
+      this.sendAnswer(signal)
     );
     this._chatMediator.onIceCandidate$.subscribe(
       ({ candidate, connectionId }) =>
@@ -106,12 +107,12 @@ export class SignalRService {
     this._store.messages.update((messages) => [...messages, message]);
   }
 
-  public async sendOffer(offer: RTCSessionDescriptionInit) {
-    await this._hubConnection.invoke('SendOffer', offer);
+  public async sendOffer(signal: WebRtcSignal) {
+    await this._hubConnection.invoke('SendOffer', signal.connectionId, signal.data);
   }
 
-  public async sendAnswer(answer: RTCSessionDescriptionInit, targetId: string) {
-    await this._hubConnection.invoke('SendAnswer', targetId, answer);
+  public async sendAnswer(signal: WebRtcSignal) {
+    await this._hubConnection.invoke('SendAnswer', signal.connectionId, signal.data);
   }
 
   public async sendIceCandidate(
