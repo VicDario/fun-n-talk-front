@@ -23,7 +23,7 @@
       </button>
     </div>
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
-      @for (data of conversation(); track data.timestamp) {
+      @for (data of conversation(); track $index) {
       <div
         class="flex flex-col"
         [ngClass]="{ 'items-end': data.user.connectionId === connectionId }"
