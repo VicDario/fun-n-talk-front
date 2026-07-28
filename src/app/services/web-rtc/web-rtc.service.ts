@@ -15,9 +15,11 @@ import { StoreService } from '@services/store/store.service';
   providedIn: 'root',
 })
 export class WebRtcService {
-  private readonly _peerConnections: Map<string, RTCPeerConnection> = new Map<
+  // Holds promises rather than connections so a peer can be claimed
+  // synchronously, before the awaits in setupPeerConnection.
+  private readonly _peerConnections = new Map<
     string,
-    RTCPeerConnection
+    Promise<RTCPeerConnection>
   >();
   private readonly _chatMediator = inject(ChatMediatorService);
   private readonly _mediaService = inject(MediaService);
@@ -68,13 +70,28 @@ export class WebRtcService {
     );
   }
 
-  public async createPeerConnection(
+  public createPeerConnection(
     connectionId: string,
     isInitiator = false
-  ): Promise<RTCPeerConnection | null> {
-    if (this._peerConnections.has(connectionId))
-      return this._peerConnections.get(connectionId)!;
+  ): Promise<RTCPeerConnection> {
+    const existing = this._peerConnections.get(connectionId);
+    if (existing) return existing;
 
+    const created = this.setupPeerConnection(connectionId, isInitiator).catch(
+      (err) => {
+        // Do not cache a failed setup, the peer may still be reachable later.
+        this._peerConnections.delete(connectionId);
+        throw err;
+      }
+    );
+    this._peerConnections.set(connectionId, created);
+    return created;
+  }
+
+  private async setupPeerConnection(
+    connectionId: string,
+    isInitiator: boolean
+  ): Promise<RTCPeerConnection> {
     const peerConnection = new RTCPeerConnection({
       iceServers: await this.getIceServers(),
     });
@@ -101,7 +118,6 @@ export class WebRtcService {
 
     if (isInitiator) await this.createOffer(connectionId, peerConnection);
 
-    this._peerConnections.set(connectionId, peerConnection);
     return peerConnection;
   }
 
@@ -138,10 +154,10 @@ export class WebRtcService {
 
   private async handleOffer({ user, data: offer }: WebRtcIncomingSignal) {
     try {
-      const connection =
-        this._peerConnections.get(user.connectionId) ??
-        (await this.createPeerConnection(user.connectionId, false));
-      if (!connection) return;
+      const connection = await this.createPeerConnection(
+        user.connectionId,
+        false
+      );
 
       await connection.setRemoteDescription(new RTCSessionDescription(offer));
       await this.sendAnswerToOffer(connection, user.connectionId);
@@ -152,7 +168,7 @@ export class WebRtcService {
 
   private async handleAnswer({ user, data }: WebRtcIncomingSignal) {
     try {
-      const connection = this._peerConnections.get(user.connectionId);
+      const connection = await this._peerConnections.get(user.connectionId);
       if (!connection) return;
 
       const answer = new RTCSessionDescription(data);
@@ -167,7 +183,7 @@ export class WebRtcService {
     candidate: candidateData,
   }: WebRtcCandidate) {
     try {
-      const connection = this._peerConnections.get(user.connectionId);
+      const connection = await this._peerConnections.get(user.connectionId);
       if (!connection) return;
 
       const candidate: RTCIceCandidateInit = JSON.parse(candidateData);
@@ -177,17 +193,19 @@ export class WebRtcService {
     }
   }
 
-  private closePeerConnection(connectionId: string) {
+  private async closePeerConnection(connectionId: string) {
     const connection = this._peerConnections.get(connectionId);
     if (!connection) return;
 
-    this._store.removeRemoteStream(connectionId);
+    // Deleted before awaiting so the signalingstatechange handler that close()
+    // triggers finds nothing left to do and the recursion stops here.
     this._peerConnections.delete(connectionId);
-    connection.close();
+    this._store.removeRemoteStream(connectionId);
+    (await connection.catch(() => null))?.close();
   }
 
   private stopAllConnections() {
-    for (const connectionId of this._peerConnections.keys()) {
+    for (const connectionId of [...this._peerConnections.keys()]) {
       this.closePeerConnection(connectionId);
     }
   }
