@@ -1,7 +1,7 @@
 import { DatePipe, NgClass } from '@angular/common';
 import { Component, inject, signal, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SignalRService } from '@services/signal-r/signal-r.service';
+import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
 import { StoreService } from '@services/store/store.service';
 
 @Component({
@@ -11,7 +11,7 @@ import { StoreService } from '@services/store/store.service';
   styleUrl: './chat-sidebar.component.css',
 })
 export class ChatSidebarComponent {
-  private readonly _signalRService = inject(SignalRService);
+  private readonly _chatMediator = inject(ChatMediatorService);
   private readonly _store = inject(StoreService);
   public isChatOpen: WritableSignal<boolean> = signal(false);
 
@@ -22,7 +22,7 @@ export class ChatSidebarComponent {
     ) as HTMLInputElement;
     const message = messageInput.value.trim();
     if (!message.length) return;
-    this._signalRService.sendMessage(message);
+    this._chatMediator.sendMessage(message);
     target.reset();
   }
 

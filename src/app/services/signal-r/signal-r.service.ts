@@ -76,7 +76,7 @@ export class SignalRService {
     );
 
     this._hubConnection.on('ReceiveMessage', (message: Message) =>
-      this.handleReceivedMessage(message)
+      this._chatMediator.receiveMessage(message)
     );
 
     this._hubConnection.on('ReceiveOffer', (signal: WebRtcIncomingSignal) =>
@@ -100,14 +100,15 @@ export class SignalRService {
       ({ candidate, connectionId }) =>
         this.sendIceCandidate(candidate, connectionId)
     );
+
+    this._chatMediator.onSendMessage$.subscribe((message) =>
+      this.sendMessage(message)
+    );
   }
 
-  public async sendMessage(message: string) {
+  private async sendMessage(message: string) {
+    if (!this.isConnected) return;
     await this._hubConnection.invoke('SendMessage', message);
-  }
-
-  private handleReceivedMessage(message: Message) {
-    this._store.messages.update((messages) => [...messages, message]);
   }
 
   public async sendOffer(signal: WebRtcSignal) {

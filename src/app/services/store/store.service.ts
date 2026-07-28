@@ -1,17 +1,31 @@
-import { Injectable, signal, WritableSignal } from '@angular/core';
+import { inject, Injectable, signal, WritableSignal } from '@angular/core';
 import { Message } from '@interfaces/message.interface';
 import { User, UserOptions } from '@interfaces/user.interface';
 import { WebRtcStreamConnection } from '@interfaces/web-rtc.interface';
+import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class StoreService {
+  private readonly _chatMediator = inject(ChatMediatorService);
   private _connectionId: string | null = null;
   private _user: UserOptions = { username: '', roomName: '' };
   private _users = signal<User[]>([]);
   private _messages = signal<Message[]>([]);
   private readonly _remoteStreams = signal<WebRtcStreamConnection[]>([]);
+
+  constructor() {
+    this._chatMediator.onUserJoined$.subscribe((user) =>
+      this.addParticipant(user)
+    );
+    this._chatMediator.onUserLeft$.subscribe((user) =>
+      this.removeParticipant(user.connectionId)
+    );
+    this._chatMediator.onMessage$.subscribe((message) =>
+      this.addMessage(message)
+    );
+  }
 
   public get connectionId() {
     return this._connectionId ?? '';
