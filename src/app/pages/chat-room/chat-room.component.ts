@@ -17,9 +17,7 @@ export class ChatRoomComponent {
   private readonly _mediaService = inject(MediaService);
   private readonly _router = inject(Router);
   private readonly _signalRService = inject(SignalRService);
-  // Signals rather than plain fields: under OnPush these are the only local
-  // state the template reads, and zoneless change detection will not notice a
-  // plain field being reassigned.
+  // Signals, not fields: zoneless change detection ignores a reassigned field.
   public readonly isVideoEnabled = signal(true);
   public readonly isMicrophoneEnabled = signal(true);
 

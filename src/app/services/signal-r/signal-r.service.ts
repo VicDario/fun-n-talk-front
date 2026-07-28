@@ -64,13 +64,8 @@ export class SignalRService {
     }
   }
 
-  /**
-   * Called once from the constructor. This used to run per startConnection,
-   * which re-subscribed to the mediator on every rejoin without ever
-   * unsubscribing, so a second session sent every offer, answer and candidate
-   * twice. Both the hub handlers and the mediator subscriptions live as long as
-   * this root service does, so registering them once is enough.
-   */
+  // Once only. Re-running this per session leaks mediator subscriptions and
+  // every signal gets sent twice.
   private registerEvents() {
     this._hubConnection.on('UserJoined', (user: User) =>
       this._chatMediator.userJoined(user)

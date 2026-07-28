@@ -15,13 +15,11 @@ import { StoreService } from '@services/store/store.service';
   providedIn: 'root',
 })
 export class WebRtcService {
-  // Holds promises rather than connections so a peer can be claimed
-  // synchronously, before the awaits in setupPeerConnection.
+  // Promises, so a peer is claimed synchronously before setup awaits.
   private readonly _peerConnections = new Map<
     string,
     Promise<RTCPeerConnection>
   >();
-  // Candidates that arrived before the remote description was set.
   private readonly _pendingCandidates = new Map<string, RTCIceCandidateInit[]>();
   private readonly _chatMediator = inject(ChatMediatorService);
   private readonly _mediaService = inject(MediaService);
@@ -44,11 +42,8 @@ export class WebRtcService {
     this._chatMediator.onLeaveRoom$.subscribe(() => this.stopAllConnections());
   }
 
-  /**
-   * TURN credentials are extractable from any browser bundle, so they must be
-   * short-lived and issued per session by the backend. Falls back to the
-   * STUN-only config when that endpoint is unavailable.
-   */
+  // TURN credentials are readable in any browser bundle, so the backend issues
+  // short-lived ones per session. STUN-only is the fallback.
   private getIceServers(): Promise<RTCIceServer[]> {
     this._iceServers ??= firstValueFrom(
       this._http.get<RTCIceServer[]>(
@@ -81,7 +76,7 @@ export class WebRtcService {
 
     const created = this.setupPeerConnection(connectionId, isInitiator).catch(
       (err) => {
-        // Do not cache a failed setup, the peer may still be reachable later.
+        // Never cache a failed setup, the peer may be reachable later.
         this._peerConnections.delete(connectionId);
         throw err;
       }
@@ -190,8 +185,8 @@ export class WebRtcService {
       const candidate: RTCIceCandidateInit = JSON.parse(candidateData);
       const connection = await this._peerConnections.get(user.connectionId);
 
-      // addIceCandidate rejects until the remote description is set, and the
-      // remote peer usually starts trickling before its offer or answer lands.
+      // Peers trickle before their offer or answer lands, and addIceCandidate
+      // rejects until the remote description exists.
       if (!connection?.remoteDescription) {
         const pending = this._pendingCandidates.get(user.connectionId) ?? [];
         pending.push(candidate);
@@ -226,8 +221,8 @@ export class WebRtcService {
     const connection = this._peerConnections.get(connectionId);
     if (!connection) return;
 
-    // Deleted before awaiting so the signalingstatechange handler that close()
-    // triggers finds nothing left to do and the recursion stops here.
+    // Delete before awaiting, so the signalingstatechange that close() fires
+    // finds nothing and the recursion stops.
     this._peerConnections.delete(connectionId);
     this._pendingCandidates.delete(connectionId);
     this._store.removeRemoteStream(connectionId);

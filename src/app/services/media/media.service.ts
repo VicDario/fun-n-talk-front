@@ -32,12 +32,8 @@ export class MediaService {
     }
   }
 
-  /**
-   * Tracks hold the camera and microphone open until they are stopped, so
-   * leaving a room without this leaves the recording indicator lit. Clearing
-   * the cache also means the next join re-acquires instead of reusing ended
-   * tracks.
-   */
+  // Tracks keep the camera lit until stopped. Clearing the cache makes the
+  // next join re-acquire instead of reusing ended tracks.
   public stopLocalStream(): void {
     this._localStream?.getTracks().forEach((track) => track.stop());
     this._localStream = undefined;
