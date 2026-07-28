@@ -58,6 +58,10 @@ export class WebRtcService {
   }
 
   private async start() {
+    // Also runs after a hub reconnect, where every existing peer holds our old
+    // connection id and is unreachable. Empty on a first join.
+    this.stopAllConnections();
+
     const connections = this._store
       .participants()
       .filter((user) => user.connectionId !== this._store.connectionId);

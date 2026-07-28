@@ -15,6 +15,7 @@ import {
 } from '@microsoft/signalr';
 import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
 import { StoreService } from '@services/store/store.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -38,20 +39,24 @@ export class SignalRService {
   public async startConnection(options: UserOptions) {
     try {
       await this._hubConnection.start();
-      await this._hubConnection.invoke(
-        'JoinRoom',
-        options.roomName,
-        options.username
-      );
       this._store.user = options;
-      this._store.connectionId = this._hubConnection.connectionId!;
-      this.getParticipants(options.roomName).subscribe((participants) => {
-        this._store.participants = participants;
-        this._chatMediator.joinRoom();
-      });
+      await this.joinRoom();
     } catch (error) {
       console.error(error);
     }
+  }
+
+  // Reconnecting gives us a new connection id, and the hub dropped us from the
+  // room when the old one died. Every peer is addressed by that id, so the
+  // session has to be rebuilt from scratch rather than resumed.
+  private async joinRoom() {
+    const { roomName, username } = this._store.user;
+    await this._hubConnection.invoke('JoinRoom', roomName, username);
+    this._store.connectionId = this._hubConnection.connectionId!;
+    this._store.participants = await firstValueFrom(
+      this.getParticipants(roomName)
+    );
+    this._chatMediator.joinRoom();
   }
 
   public async stopConnection() {
@@ -67,6 +72,10 @@ export class SignalRService {
   // Once only. Re-running this per session leaks mediator subscriptions and
   // every signal gets sent twice.
   private registerEvents() {
+    this._hubConnection.onreconnected(() =>
+      this.joinRoom().catch((error) => console.error(error))
+    );
+
     this._hubConnection.on('UserJoined', (user: User) =>
       this._chatMediator.userJoined(user)
     );
