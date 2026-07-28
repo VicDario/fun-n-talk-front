@@ -1,11 +1,14 @@
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
 FROM base AS build
 WORKDIR /app
-RUN pnpm fetch
+# Manifests first, so the install layer is only rebuilt when they change.
+# pnpm-workspace.yaml carries the allowBuilds entries esbuild needs.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY ./ ./
 RUN pnpm run build
 
