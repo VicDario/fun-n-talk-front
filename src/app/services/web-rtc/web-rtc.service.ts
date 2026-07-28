@@ -104,9 +104,12 @@ export class WebRtcService {
         this._chatMediator.onIceCandidate(event.candidate, connectionId);
     };
 
-    peerConnection.addEventListener('signalingstatechange', () => {
-      if (peerConnection.signalingState === 'closed')
-        this.closePeerConnection(connectionId);
+    peerConnection.addEventListener('connectionstatechange', () => {
+      const state = peerConnection.connectionState;
+      if (state === 'closed') this.closePeerConnection(connectionId);
+      // Only the impolite peer restarts, otherwise both would offer at once.
+      if (state === 'failed' && !this.isPolite(connectionId))
+        this.restartIce(connectionId, peerConnection);
     });
 
     peerConnection.addEventListener('track', (event) => {
@@ -144,6 +147,17 @@ export class WebRtcService {
     } finally {
       this._makingOffer.delete(connectionId);
     }
+  }
+
+  // A failed connection is recoverable: the peers are still signalling, only
+  // the media path died. Gathering fresh candidates is far cheaper than
+  // tearing the connection down and rebuilding it.
+  private async restartIce(
+    connectionId: string,
+    peerConnection: RTCPeerConnection
+  ): Promise<void> {
+    peerConnection.restartIce();
+    await this.createOffer(connectionId, peerConnection);
   }
 
   private async sendAnswerToOffer(
