@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
 
 @Injectable({
@@ -7,6 +7,7 @@ import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.servi
 export class MediaService {
   private readonly _chatMediator = inject(ChatMediatorService);
   private _localStream?: MediaStream;
+  public readonly error = signal<string | null>(null);
 
   constructor() {
     this._chatMediator.onLeaveRoom$.subscribe(() => this.stopLocalStream());
@@ -22,13 +23,27 @@ export class MediaService {
       });
 
       this._localStream = localStream;
+      this.error.set(null);
       return localStream;
     } catch (error) {
-      console.error("Error accessing media devices:", error);
+      this.error.set(this.describeError(error));
 
-      // Return an empty stream with no tracks to prevent breaking the app
-      const emptyStream = new MediaStream();
-      return emptyStream;
+      // An empty stream keeps the call alive: the user stays in the room and
+      // can still see and hear everyone else.
+      return new MediaStream();
+    }
+  }
+
+  private describeError(error: unknown): string {
+    switch (error instanceof DOMException ? error.name : '') {
+      case 'NotAllowedError':
+        return 'Camera and microphone access was blocked. Allow it in your browser settings, then rejoin the room.';
+      case 'NotFoundError':
+        return 'No camera or microphone was found on this device.';
+      case 'NotReadableError':
+        return 'Your camera or microphone is already being used by another application.';
+      default:
+        return 'Your camera and microphone could not be started. Others can still see and hear each other.';
     }
   }
 

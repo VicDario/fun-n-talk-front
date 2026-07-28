@@ -7,7 +7,14 @@
   'grid-cols-4': remoteStreamsConnections().length > 9,
 }"
 >
-  @if (localStream()) {
+  @if (mediaError(); as error) {
+  <p
+    role="alert"
+    class="absolute top-0 left-1/2 -translate-x-1/2 m-4 px-4 py-3 rounded-lg bg-red-100 text-red-800 text-sm text-center max-w-md"
+  >
+    {{ error }}
+  </p>
+  } @if (localStream()) {
   <video
     [srcObject]="localStream()"
     autoplay

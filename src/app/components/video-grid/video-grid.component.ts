@@ -26,4 +26,8 @@ export class VideoGridComponent implements OnInit {
   public get remoteStreamsConnections() {
     return this._store.remoteStreams;
   }
+
+  public get mediaError() {
+    return this._mediaService.error;
+  }
 }
