@@ -21,6 +21,7 @@ export class WebRtcService {
     Promise<RTCPeerConnection>
   >();
   private readonly _pendingCandidates = new Map<string, RTCIceCandidateInit[]>();
+  private readonly _makingOffer = new Set<string>();
   private readonly _chatMediator = inject(ChatMediatorService);
   private readonly _mediaService = inject(MediaService);
   private readonly _store = inject(StoreService);
@@ -118,20 +119,30 @@ export class WebRtcService {
     return peerConnection;
   }
 
+  // Both peers can offer at once. The one with the lower connection id is
+  // polite and yields; the other ignores the colliding offer. Comparing ids
+  // needs no extra signalling and both sides always agree on the answer.
+  private isPolite(connectionId: string): boolean {
+    return this._store.connectionId < connectionId;
+  }
+
   private async createOffer(
     connectionId: string,
     peerConnection: RTCPeerConnection
   ): Promise<void> {
+    this._makingOffer.add(connectionId);
     try {
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       const offerData: WebRtcSignal = {
         connectionId,
         data: offer,
-      }
+      };
       this._chatMediator.sendOffer(offerData);
     } catch (err) {
       console.error('Error creating offer:', err);
+    } finally {
+      this._makingOffer.delete(connectionId);
     }
   }
 
@@ -156,6 +167,12 @@ export class WebRtcService {
         false
       );
 
+      const collision =
+        this._makingOffer.has(user.connectionId) ||
+        connection.signalingState !== 'stable';
+      if (collision && !this.isPolite(user.connectionId)) return;
+
+      // setRemoteDescription rolls our own pending offer back implicitly.
       await connection.setRemoteDescription(new RTCSessionDescription(offer));
       await this.flushPendingCandidates(user.connectionId, connection);
       await this.sendAnswerToOffer(connection, user.connectionId);

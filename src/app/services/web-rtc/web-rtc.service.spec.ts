@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import type { User } from '@interfaces/user.interface';
 import { MediaService } from '@services/media/media.service';
+import { StoreService } from '@services/store/store.service';
 import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 import { throwError } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -13,7 +14,7 @@ class FakePeerConnection {
   public static instances = 0;
   public remoteDescription: unknown = null;
   public readonly addedCandidates: unknown[] = [];
-  public readonly signalingState = 'stable';
+  public signalingState = 'stable';
   public onicecandidate: unknown = null;
 
   constructor() {
@@ -29,9 +30,12 @@ class FakePeerConnection {
   async createAnswer() {
     return { type: 'answer', sdp: '' };
   }
-  async setLocalDescription() {}
+  async setLocalDescription() {
+    this.signalingState = 'have-local-offer';
+  }
   async setRemoteDescription(description: unknown) {
     this.remoteDescription = description;
+    this.signalingState = 'stable';
   }
   async addIceCandidate(candidate: unknown) {
     if (!this.remoteDescription) throw new Error('no remote description');
@@ -103,5 +107,31 @@ describe('WebRtcService', () => {
     });
 
     expect(connection.addedCandidates).toHaveLength(1);
+  });
+
+  describe('when both peers offer at once', () => {
+    const collide = async (ownConnectionId: string) => {
+      TestBed.inject(StoreService).connectionId = ownConnectionId;
+      const connection = (await service.createPeerConnection(
+        peer.connectionId,
+        true
+      )) as unknown as FakePeerConnection;
+
+      await service['handleOffer']({
+        user: peer,
+        data: { type: 'offer', sdp: '' },
+      });
+      return connection;
+    };
+
+    it('ignores the colliding offer when it is the impolite peer', async () => {
+      const connection = await collide('zzz-higher-than-peer-1');
+      expect(connection.remoteDescription).toBeNull();
+    });
+
+    it('yields to the colliding offer when it is the polite peer', async () => {
+      const connection = await collide('aaa-lower-than-peer-1');
+      expect(connection.remoteDescription).not.toBeNull();
+    });
   });
 });
