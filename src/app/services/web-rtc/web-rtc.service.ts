@@ -1,5 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '@env/environment';
+import { firstValueFrom } from 'rxjs';
 import { MediaService } from '../media/media.service';
 import type {
   WebRtcSignal,
@@ -20,6 +22,8 @@ export class WebRtcService {
   private readonly _chatMediator = inject(ChatMediatorService);
   private readonly _mediaService = inject(MediaService);
   private readonly _store = inject(StoreService);
+  private readonly _http = inject(HttpClient);
+  private _iceServers?: Promise<RTCIceServer[]>;
 
   constructor() {
     this._chatMediator.onJoinRoom$.subscribe(() => this.start());
@@ -34,6 +38,23 @@ export class WebRtcService {
       this.closePeerConnection(user.connectionId)
     );
     this._chatMediator.onLeaveRoom$.subscribe(() => this.stopAllConnections());
+  }
+
+  /**
+   * TURN credentials are extractable from any browser bundle, so they must be
+   * short-lived and issued per session by the backend. Falls back to the
+   * STUN-only config when that endpoint is unavailable.
+   */
+  private getIceServers(): Promise<RTCIceServer[]> {
+    this._iceServers ??= firstValueFrom(
+      this._http.get<RTCIceServer[]>(
+        `${environment.apiUrl}/api/communication/ice-servers`
+      )
+    ).catch(() => {
+      console.warn('Could not fetch ICE servers, falling back to STUN only.');
+      return environment.iceServers;
+    });
+    return this._iceServers;
   }
 
   private async start() {
@@ -55,7 +76,7 @@ export class WebRtcService {
       return this._peerConnections.get(connectionId)!;
 
     const peerConnection = new RTCPeerConnection({
-      iceServers: environment.iceServers,
+      iceServers: await this.getIceServers(),
     });
 
     const localStream = await this._mediaService.getLocalStream();
