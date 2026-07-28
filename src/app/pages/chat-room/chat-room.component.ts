@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChatSidebarComponent } from '@components/chat-sidebar/chat-sidebar.component';
 import { VideoGridComponent } from '@components/video-grid/video-grid.component';
@@ -17,8 +17,11 @@ export class ChatRoomComponent {
   private readonly _mediaService = inject(MediaService);
   private readonly _router = inject(Router);
   private readonly _signalRService = inject(SignalRService);
-  public isVideoEnabled = true;
-  public isMicrophoneEnabled = true;
+  // Signals rather than plain fields: under OnPush these are the only local
+  // state the template reads, and zoneless change detection will not notice a
+  // plain field being reassigned.
+  public readonly isVideoEnabled = signal(true);
+  public readonly isMicrophoneEnabled = signal(true);
 
   public leaveRoom(): void {
     this._signalRService.stopConnection();
@@ -26,12 +29,12 @@ export class ChatRoomComponent {
   }
 
   public toggleMicrophone(): void {
-    this.isMicrophoneEnabled = !this.isMicrophoneEnabled;
-    this._mediaService.toggleAudio(this.isMicrophoneEnabled);
+    this.isMicrophoneEnabled.update((enabled) => !enabled);
+    this._mediaService.toggleAudio(this.isMicrophoneEnabled());
   }
 
   public toggleVideo(): void {
-    this.isVideoEnabled = !this.isVideoEnabled;
-    this._mediaService.toggleVideo(this.isVideoEnabled);
+    this.isVideoEnabled.update((enabled) => !enabled);
+    this._mediaService.toggleVideo(this.isVideoEnabled());
   }
 }
