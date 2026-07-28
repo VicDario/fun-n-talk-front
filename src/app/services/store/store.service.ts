@@ -57,7 +57,7 @@ export class StoreService {
 
   public removeParticipant(connectionId: string) {
     this._users.update((users) =>
-      [...users].filter((user) => user.connectionId !== connectionId)
+      users.filter((user) => user.connectionId !== connectionId)
     );
   }
 
@@ -74,22 +74,23 @@ export class StoreService {
   }
 
   public addOrReplaceRemoteStream(stream: WebRtcStreamConnection) {
-    this._remoteStreams.update((remoteStreams) => {
-      const streams = [...remoteStreams];
-      const index = streams.findIndex(
+    this._remoteStreams.update((streams) => {
+      const known = streams.some(
         (s) => s.connectionId === stream.connectionId
       );
+      if (!known) return [...streams, stream];
 
-      if (index >= 0) streams[index].stream = stream.stream;
-      else streams.push(stream);
-
-      return streams;
+      // Replace the entry instead of assigning through to its stream, so the
+      // identity change is visible to OnPush templates.
+      return streams.map((existing) =>
+        existing.connectionId === stream.connectionId ? stream : existing
+      );
     });
   }
 
   public removeRemoteStream(connectionId: string) {
     this._remoteStreams.update((streams) =>
-      [...streams].filter((stream) => stream.connectionId !== connectionId)
+      streams.filter((stream) => stream.connectionId !== connectionId)
     );
   }
 }
