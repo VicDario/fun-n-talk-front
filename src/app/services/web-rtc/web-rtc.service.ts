@@ -21,6 +21,8 @@ export class WebRtcService {
     string,
     Promise<RTCPeerConnection>
   >();
+  // Candidates that arrived before the remote description was set.
+  private readonly _pendingCandidates = new Map<string, RTCIceCandidateInit[]>();
   private readonly _chatMediator = inject(ChatMediatorService);
   private readonly _mediaService = inject(MediaService);
   private readonly _store = inject(StoreService);
@@ -160,6 +162,7 @@ export class WebRtcService {
       );
 
       await connection.setRemoteDescription(new RTCSessionDescription(offer));
+      await this.flushPendingCandidates(user.connectionId, connection);
       await this.sendAnswerToOffer(connection, user.connectionId);
     } catch (err) {
       console.error('Error handling offer:', err);
@@ -173,6 +176,7 @@ export class WebRtcService {
 
       const answer = new RTCSessionDescription(data);
       await connection.setRemoteDescription(answer);
+      await this.flushPendingCandidates(user.connectionId, connection);
     } catch (err) {
       console.error('Error handling answer:', err);
     }
@@ -183,13 +187,38 @@ export class WebRtcService {
     candidate: candidateData,
   }: WebRtcCandidate) {
     try {
-      const connection = await this._peerConnections.get(user.connectionId);
-      if (!connection) return;
-
       const candidate: RTCIceCandidateInit = JSON.parse(candidateData);
+      const connection = await this._peerConnections.get(user.connectionId);
+
+      // addIceCandidate rejects until the remote description is set, and the
+      // remote peer usually starts trickling before its offer or answer lands.
+      if (!connection?.remoteDescription) {
+        const pending = this._pendingCandidates.get(user.connectionId) ?? [];
+        pending.push(candidate);
+        this._pendingCandidates.set(user.connectionId, pending);
+        return;
+      }
+
       await connection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
       console.error('Error handling ICE candidate:', err);
+    }
+  }
+
+  private async flushPendingCandidates(
+    connectionId: string,
+    connection: RTCPeerConnection
+  ) {
+    const pending = this._pendingCandidates.get(connectionId);
+    if (!pending) return;
+
+    this._pendingCandidates.delete(connectionId);
+    for (const candidate of pending) {
+      try {
+        await connection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error('Error adding buffered ICE candidate:', err);
+      }
     }
   }
 
@@ -200,6 +229,7 @@ export class WebRtcService {
     // Deleted before awaiting so the signalingstatechange handler that close()
     // triggers finds nothing left to do and the recursion stops here.
     this._peerConnections.delete(connectionId);
+    this._pendingCandidates.delete(connectionId);
     this._store.removeRemoteStream(connectionId);
     (await connection.catch(() => null))?.close();
   }
