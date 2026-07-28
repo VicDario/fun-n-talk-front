@@ -31,6 +31,8 @@ export class SignalRService {
       .configureLogging(LogLevel.Warning)
       .withAutomaticReconnect()
       .build();
+
+    this.registerEvents();
   }
 
   public async startConnection(options: UserOptions) {
@@ -41,7 +43,6 @@ export class SignalRService {
         options.roomName,
         options.username
       );
-      this.addEvents();
       this._store.user = options;
       this._store.connectionId = this._hubConnection.connectionId!;
       this.getParticipants(options.roomName).subscribe((participants) => {
@@ -56,7 +57,6 @@ export class SignalRService {
   public async stopConnection() {
     try {
       await this._hubConnection.invoke('LeaveRoom');
-      this.turnOffEvents();
       await this._hubConnection.stop();
       this._chatMediator.leaveRoom();
     } catch (error) {
@@ -64,7 +64,14 @@ export class SignalRService {
     }
   }
 
-  private addEvents() {
+  /**
+   * Called once from the constructor. This used to run per startConnection,
+   * which re-subscribed to the mediator on every rejoin without ever
+   * unsubscribing, so a second session sent every offer, answer and candidate
+   * twice. Both the hub handlers and the mediator subscriptions live as long as
+   * this root service does, so registering them once is enough.
+   */
+  private registerEvents() {
     this._hubConnection.on('UserJoined', (user: User) =>
       this._chatMediator.userJoined(user)
     );
@@ -100,18 +107,6 @@ export class SignalRService {
     );
   }
 
-  private turnOffEvents() {
-    const events = [
-      'UserJoined',
-      'UserLeft',
-      'ReceiveMessage',
-      'ReceiveOffer',
-      'ReceiveAnswer',
-      'ReceiveICECandidate',
-    ];
-    for (const event of events) this._hubConnection.off(event);
-  }
-
   public async sendMessage(message: string) {
     await this._hubConnection.invoke('SendMessage', message);
   }
@@ -121,6 +116,7 @@ export class SignalRService {
   }
 
   public async sendOffer(signal: WebRtcSignal) {
+    if (!this.isConnected) return;
     await this._hubConnection.invoke(
       'SendOffer',
       signal.connectionId,
@@ -129,6 +125,7 @@ export class SignalRService {
   }
 
   public async sendAnswer(signal: WebRtcSignal) {
+    if (!this.isConnected) return;
     await this._hubConnection.invoke(
       'SendAnswer',
       signal.connectionId,
@@ -140,6 +137,8 @@ export class SignalRService {
     candidate: RTCIceCandidateInit,
     targetId: string
   ) {
+    // Peers keep trickling for a moment after the hub is torn down.
+    if (!this.isConnected) return;
     await this._hubConnection.invoke(
       'SendICECandidate',
       targetId,
