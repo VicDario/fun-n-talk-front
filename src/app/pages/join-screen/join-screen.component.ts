@@ -8,7 +8,6 @@ import {
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { SignalRService } from '@services/signal-r/signal-r.service';
-import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 
 @Component({
   selector: 'app-join-screen',
@@ -19,7 +18,6 @@ import { WebRtcService } from '@services/web-rtc/web-rtc.service';
 export class JoinScreenComponent {
   private readonly _router = inject(Router);
   private readonly _signalRService = inject(SignalRService);
-  private readonly _ = inject(WebRtcService);
   public joinForm: FormGroup;
 
   constructor() {
