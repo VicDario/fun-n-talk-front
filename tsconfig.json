@@ -17,9 +17,6 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
-    // No baseUrl: it is deprecated in typescript 6 and removed in 7. Path
-    // mappings without it resolve relative to this file, which is the same
-    // directory baseUrl pointed at.
     "paths": {
       "@components/*": ["./src/app/components/*"],
       "@env/*": ["./src/environments/*"],
