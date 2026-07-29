@@ -88,7 +88,8 @@
           "builder": "@angular/build:unit-test",
           "options": {
             "tsConfig": "tsconfig.spec.json",
-            "runner": "vitest"
+            "runner": "vitest",
+            "providersFile": "src/test-providers.ts"
           }
         },
         "lint": {
