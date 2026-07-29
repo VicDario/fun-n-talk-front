@@ -45,3 +45,6 @@ Thumbs.db
 server.key
 server.csr
 server.crt
+
+# Personal notes
+/docs/
