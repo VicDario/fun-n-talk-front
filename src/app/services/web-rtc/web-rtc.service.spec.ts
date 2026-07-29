@@ -1,4 +1,5 @@
 import { HttpClient } from '@angular/common/http';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { User } from '@interfaces/user.interface';
 import { MediaService } from '@services/media/media.service';
@@ -66,6 +67,7 @@ describe('WebRtcService', () => {
 
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         {
           provide: MediaService,
           useValue: { getLocalStream: async () => ({ getTracks: () => [] }) },
