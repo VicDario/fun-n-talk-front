@@ -55,9 +55,8 @@ export class SignalRService {
     // never a correctness boundary, but every entry point must pass through
     // it — a caller could bypass a form-level check entirely.
     const roomCode = normalizeRoomCode(options.roomCode);
-    if (!isWellFormedRoomCode(roomCode)) {
+    if (!isWellFormedRoomCode(roomCode))
       throw new RoomJoinError('invalid-code');
-    }
 
     this._store.user = { ...options, roomCode };
 
