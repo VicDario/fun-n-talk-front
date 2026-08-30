@@ -1,5 +1,12 @@
-import { inject, Injectable, signal, WritableSignal } from '@angular/core';
+import {
+  inject,
+  Injectable,
+  signal,
+  Signal,
+  WritableSignal,
+} from '@angular/core';
 import { Message } from '@interfaces/message.interface';
+import type { SessionNotice } from '@interfaces/room.interface';
 import { User, UserOptions } from '@interfaces/user.interface';
 import { WebRtcStreamConnection } from '@interfaces/web-rtc.interface';
 import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.service';
@@ -10,10 +17,12 @@ import { ChatMediatorService } from '@services/chat-mediator/chat-mediator.servi
 export class StoreService {
   private readonly _chatMediator = inject(ChatMediatorService);
   private _connectionId: string | null = null;
-  private _user: UserOptions = { username: '', roomName: '' };
+  private _user: UserOptions = { username: '', roomCode: '' };
   private _users = signal<User[]>([]);
   private _messages = signal<Message[]>([]);
   private readonly _remoteStreams = signal<WebRtcStreamConnection[]>([]);
+  private readonly _isRoomMember = signal(false);
+  public sessionNotice: SessionNotice | null = null;
 
   constructor() {
     this._chatMediator.onUserJoined$.subscribe((user) =>
@@ -71,6 +80,14 @@ export class StoreService {
 
   public get remoteStreams(): WritableSignal<WebRtcStreamConnection[]> {
     return this._remoteStreams;
+  }
+
+  public get isRoomMember(): Signal<boolean> {
+    return this._isRoomMember;
+  }
+
+  public setRoomMembership(isMember: boolean): void {
+    this._isRoomMember.set(isMember);
   }
 
   public addOrReplaceRemoteStream(stream: WebRtcStreamConnection) {

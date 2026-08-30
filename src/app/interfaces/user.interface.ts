@@ -5,5 +5,5 @@ export interface User {
 
 export interface UserOptions {
   username: string;
-  roomName: string;
+  roomCode: string;
 }

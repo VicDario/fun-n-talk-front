@@ -21,8 +21,9 @@ export class ChatRoomComponent {
   public readonly isVideoEnabled = signal(true);
   public readonly isMicrophoneEnabled = signal(true);
 
-  public leaveRoom(): void {
-    this._signalRService.stopConnection();
+  public async leaveRoom(): Promise<void> {
+    // Await teardown before navigating so navigation cannot outrun it.
+    await this._signalRService.stopConnection();
     this._router.navigate(['/']);
   }
 
