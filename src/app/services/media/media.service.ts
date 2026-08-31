@@ -22,20 +22,54 @@ export class MediaService {
         audio: true,
       });
 
-      this._localStream = localStream;
       this.error.set(null);
-      return localStream;
-    } catch (error) {
-      this.error.set(this.describeError(error));
+      return this.cacheStream(localStream);
+    } catch (videoError) {
+      return this.getAudioOnlyStream(videoError);
+    }
+  }
+
+  // A combined request is all-or-nothing, so a missing or blocked camera also
+  // rejects a perfectly usable microphone. Asking again for audio alone tells
+  // the two failures apart and keeps the user audible.
+  private async getAudioOnlyStream(videoError: unknown): Promise<MediaStream> {
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
+
+      this.error.set(this.describeCameraFailure(videoError));
+      return this.cacheStream(audioStream);
+    } catch (audioError) {
+      this.error.set(this.describeFailure(audioError));
 
       // An empty stream keeps the call alive: the user stays in the room and
-      // can still see and hear everyone else.
+      // can still see and hear everyone else. It is left uncached so the next
+      // join retries instead of reusing a stream with nothing in it.
       return new MediaStream();
     }
   }
 
-  private describeError(error: unknown): string {
-    switch (error instanceof DOMException ? error.name : '') {
+  private cacheStream(stream: MediaStream): MediaStream {
+    this._localStream = stream;
+    return stream;
+  }
+
+  private describeCameraFailure(error: unknown): string {
+    switch (this.errorName(error)) {
+      case 'NotAllowedError':
+        return 'Camera access was blocked, so you joined with audio only. Allow it in your browser settings, then rejoin the room.';
+      case 'NotFoundError':
+        return 'No camera was found on this device, so you joined with audio only.';
+      case 'NotReadableError':
+        return 'Your camera is already being used by another application, so you joined with audio only.';
+      default:
+        return 'Your camera could not be started, so you joined with audio only.';
+    }
+  }
+
+  private describeFailure(error: unknown): string {
+    switch (this.errorName(error)) {
       case 'NotAllowedError':
         return 'Camera and microphone access was blocked. Allow it in your browser settings, then rejoin the room.';
       case 'NotFoundError':
@@ -45,6 +79,10 @@ export class MediaService {
       default:
         return 'Your camera and microphone could not be started. Others can still see and hear each other.';
     }
+  }
+
+  private errorName(error: unknown): string {
+    return error instanceof DOMException ? error.name : '';
   }
 
   // Tracks keep the camera lit until stopped. Clearing the cache makes the
